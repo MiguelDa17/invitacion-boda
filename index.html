@@ -151,7 +151,8 @@
 
     .hero-contenido {
       position: relative; z-index: 2;
-      text-align: center; padding: 0 28px;
+      text-align: center; padding: 0 20px;
+      width: 100%; box-sizing: border-box;
     }
     .hero-pre {
       font-family: var(--font-sans);
@@ -162,14 +163,19 @@
     }
     .hero-nombres {
       font-family: var(--font-script);
-      font-size: clamp(4rem, 18vw, 9rem);
-      color: #fff; line-height: .95;
+      font-size: clamp(2.4rem, 11vw, 9rem);
+      color: #fff; line-height: 1.05;
       opacity: 0; animation: subirFade 1s .9s ease forwards;
+      max-width: 100%;
+      display: block;
+      word-break: break-word;
     }
     .hero-amp { color: var(--gold); }
     .hero-linea {
       width: 55px; height: 1px;
-      background: var(--gold); margin: 22px auto;
+      background: var(--gold);
+      margin: 22px auto;
+      display: block;
       opacity: 0; animation: subirFade 1s 1.2s ease forwards;
     }
     .hero-fecha {
