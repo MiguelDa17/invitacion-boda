@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0A0A0A">
+
+  <!-- ── Vista previa para WhatsApp / redes sociales ── -->
+  <meta property="og:title"       content="Miguel & Daniela · 14 · Nov · 2026">
+  <meta property="og:description" content="Nos casamos ✨ Queremos que seas parte de este momento tan especial. ¡Estás invitado!">
+  <meta property="og:image"       content="foto.jpg">
+  <meta property="og:type"        content="website">
+  <meta name="description"        content="Invitación de boda — Miguel & Daniela — 14 de noviembre 2026 — Hacienda la Ventana">
+
+  <title>Miguel &amp; Daniela · 14 de noviembre 2026</title>
+
+  <!-- Fuentes: Great Vibes (script) · Cormorant Garamond (elegante) · Montserrat (labels) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Great+Vibes&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ══════════════════════════════════════════════════════
+       VARIABLES Y RESET
+    ══════════════════════════════════════════════════════ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --gold:        #C9A84C;
+      --gold-light:  #E2C47A;
+      --black:       #0A0A0A;
+      --black2:      #111111;
+      --cream:       #F0EBE0;
+      --gray:        #888888;
+      --font-script: 'Great Vibes', cursive;
+      --font-serif:  'Cormorant Garamond', serif;
+      --font-sans:   'Montserrat', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--cream);
+      font-family: var(--font-serif);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PANTALLA INICIAL (SPLASH)
+    ══════════════════════════════════════════════════════ */
+    #splash {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--black);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px;
+      transition: opacity .9s ease, visibility .9s ease;
+    }
+    #splash.oculto { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .splash-pre {
+      font-family: var(--font-sans);
+      font-size: .6rem; letter-spacing: .5em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 8px; text-align: center;
+      padding: 0 24px;
+    }
+    .splash-nombres {
+      font-family: var(--font-script);
+      font-size: clamp(3.5rem, 14vw, 6rem);
+      color: var(--cream); line-height: 1; text-align: center;
+    }
+    .splash-amp { color: var(--gold); }
+    .splash-linea {
+      width: 80px; height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      margin: 20px auto;
+    }
+    .splash-fecha {
+      font-family: var(--font-sans);
+      font-size: .65rem; letter-spacing: .35em;
+      text-transform: uppercase; color: var(--gray);
+      margin-bottom: 44px;
+    }
+
+    /* Botón abrir invitación */
+    .btn-abrir {
+      border: 1px solid var(--gold);
+      color: var(--gold); background: transparent;
+      font-family: var(--font-sans);
+      font-size: .7rem; letter-spacing: .25em;
+      text-transform: uppercase;
+      padding: 18px 52px; cursor: pointer;
+      position: relative; overflow: hidden;
+      transition: color .4s ease;
+      min-width: 220px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-abrir::after {
+      content: ''; position: absolute; inset: 0;
+      background: var(--gold);
+      transform: scaleX(0); transform-origin: left;
+      transition: transform .4s ease; z-index: 0;
+    }
+    .btn-abrir span { position: relative; z-index: 1; }
+    .btn-abrir:hover::after,
+    .btn-abrir:active::after { transform: scaleX(1); }
+    .btn-abrir:hover,
+    .btn-abrir:active { color: var(--black); }
+
+    /* ══════════════════════════════════════════════════════
+       CONTENIDO PRINCIPAL
+    ══════════════════════════════════════════════════════ */
+    #contenido { opacity: 0; transition: opacity 1.2s ease; }
+    #contenido.visible { opacity: 1; }
+
+    /* ══════════════════════════════════════════════════════
+       HERO
+    ══════════════════════════════════════════════════════ */
+    #hero {
+      position: relative;
+      height: 100dvh; min-height: 600px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Fondo: coloca foto.jpg junto a index.html */
+    .hero-fondo {
+      position: absolute; inset: 0;
+      background: url('foto.jpg') center top / cover no-repeat;
+      filter: brightness(.38) saturate(.9);
+      transform: scale(1.08);
+      transition: transform 10s ease;
+    }
+    #contenido.visible .hero-fondo { transform: scale(1); }
+
+    /* Overlay degradado */
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(0,0,0,.15) 0%,
+        rgba(0,0,0,.05) 50%,
+        rgba(0,0,0,.65) 100%
+      );
+    }
+
+    .hero-contenido {
+      position: relative; z-index: 2;
+      text-align: center; padding: 0 28px;
+    }
+    .hero-pre {
+      font-family: var(--font-sans);
+      font-size: .6rem; letter-spacing: .5em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 16px;
+      opacity: 0; animation: subirFade 1s .6s ease forwards;
+    }
+    .hero-nombres {
+      font-family: var(--font-script);
+      font-size: clamp(4rem, 18vw, 9rem);
+      color: #fff; line-height: .95;
+      opacity: 0; animation: subirFade 1s .9s ease forwards;
+    }
+    .hero-amp { color: var(--gold); }
+    .hero-linea {
+      width: 55px; height: 1px;
+      background: var(--gold); margin: 22px auto;
+      opacity: 0; animation: subirFade 1s 1.2s ease forwards;
+    }
+    .hero-fecha {
+      font-family: var(--font-sans);
+      font-size: .7rem; letter-spacing: .35em;
+      text-transform: uppercase; color: var(--cream);
+      opacity: 0; animation: subirFade 1s 1.4s ease forwards;
+    }
+
+    /* Flecha scroll */
+    .hero-scroll {
+      position: absolute; bottom: 28px;
+      left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+      opacity: 0; animation: subirFade 1s 2.2s ease forwards;
+    }
+    .hero-scroll-label {
+      font-family: var(--font-sans);
+      font-size: .55rem; letter-spacing: .35em;
+      text-transform: uppercase; color: var(--gold);
+    }
+    .hero-scroll-linea {
+      width: 1px; height: 40px;
+      background: linear-gradient(to bottom, var(--gold), transparent);
+      animation: pulsarLinea 2s ease infinite;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       UTILIDADES DE SECCIÓN
+    ══════════════════════════════════════════════════════ */
+    .seccion {
+      padding: 80px 28px;
+      max-width: 660px; margin: 0 auto;
+      text-align: center;
+    }
+    .sec-label {
+      font-family: var(--font-sans);
+      font-size: .58rem; letter-spacing: .4em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 14px;
+    }
+    .sec-titulo {
+      font-family: var(--font-script);
+      font-size: clamp(2.4rem, 8vw, 3.8rem);
+      color: var(--cream); line-height: 1.1;
+    }
+    .linea-oro {
+      width: 48px; height: 1px;
+      background: var(--gold); margin: 20px auto;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       FRASE ROMÁNTICA
+    ══════════════════════════════════════════════════════ */
+    #frase {
+      background: var(--black2);
+      padding: 70px 28px;
+    }
+    #frase::before, #frase::after {
+      content: ''; display: block; width: 100%; height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+    }
+    .frase-comilla {
+      font-family: var(--font-serif);
+      font-size: 5rem; line-height: .5;
+      color: var(--gold); opacity: .25;
+      margin-top: 36px; text-align: center;
+    }
+    .frase-texto {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+      color: var(--cream); line-height: 1.9;
+      max-width: 540px; margin: 16px auto 24px;
+      text-align: center;
+    }
+    .ornamento {
+      text-align: center;
+      color: var(--gold); opacity: .5; letter-spacing: .5em;
+    }
+    .frase-firma {
+      font-family: var(--font-sans);
+      font-size: .58rem; letter-spacing: .35em;
+      text-transform: uppercase; color: var(--gray);
+      margin-top: 12px; text-align: center; margin-bottom: 36px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CONTADOR REGRESIVO
+    ══════════════════════════════════════════════════════ */
+    .contador-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px; margin-top: 36px;
+    }
+    .contador-item {
+      border: 1px solid rgba(201,168,76,.2);
+      padding: 22px 6px 16px;
+      background: rgba(201,168,76,.03);
+      transition: border-color .3s ease;
+    }
+    .contador-item:hover { border-color: rgba(201,168,76,.5); }
+    .contador-num {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 7vw, 3.2rem);
+      font-weight: 300; color: var(--gold);
+      display: block; line-height: 1;
+    }
+    .contador-lab {
+      font-family: var(--font-sans);
+      font-size: .5rem; letter-spacing: .2em;
+      text-transform: uppercase; color: var(--gray);
+      display: block; margin-top: 8px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       DETALLES DEL EVENTO
+    ══════════════════════════════════════════════════════ */
+    .detalles-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px; margin-top: 36px;
+    }
+    .detalle-card {
+      border: 1px solid rgba(201,168,76,.2);
+      padding: 28px 20px;
+      transition: border-color .3s ease, transform .3s ease;
+    }
+    .detalle-card:hover {
+      border-color: rgba(201,168,76,.5);
+      transform: translateY(-2px);
+    }
+    .detalle-icon { font-size: 1.4rem; margin-bottom: 10px; display: block; }
+    .detalle-label {
+      font-family: var(--font-sans);
+      font-size: .55rem; letter-spacing: .35em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .detalle-valor {
+      font-family: var(--font-serif);
+      font-size: clamp(.95rem, 3vw, 1.15rem);
+      color: var(--cream); line-height: 1.7;
+    }
+    .detalle-valor.grande {
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      color: var(--gold);
+    }
+
+    /* Botón Maps */
+    .btn-maps {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-top: 36px;
+      background: var(--gold); color: var(--black);
+      font-family: var(--font-sans);
+      font-size: .65rem; letter-spacing: .2em;
+      text-transform: uppercase; font-weight: 500;
+      text-decoration: none;
+      padding: 18px 44px;
+      transition: all .3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-maps:hover, .btn-maps:active {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(201,168,76,.25);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       DRESS CODE & REGALOS
+    ══════════════════════════════════════════════════════ */
+    #dresscode {
+      background: var(--black2);
+      padding: 80px 28px;
+    }
+    #dresscode .inner {
+      max-width: 660px; margin: 0 auto; text-align: center;
+    }
+    .dresscode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px; margin-top: 36px;
+    }
+    .dc-card {
+      border: 1px solid rgba(201,168,76,.2);
+      padding: 26px 16px; text-align: center;
+    }
+    .dc-card .dcicon { font-size: 1.8rem; margin-bottom: 10px; display: block; }
+    .dc-card h3 {
+      font-family: var(--font-sans);
+      font-size: .55rem; letter-spacing: .3em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .dc-card p {
+      font-family: var(--font-serif);
+      font-size: .95rem; color: var(--cream); line-height: 1.7;
+    }
+    .dc-card.prohibido { border-color: rgba(180,60,60,.3); }
+    .dc-card.prohibido h3 { color: #C05050; }
+
+    .regalos-box {
+      border: 1px solid rgba(201,168,76,.2);
+      padding: 30px 24px; margin-top: 20px;
+    }
+    .regalos-box p {
+      font-family: var(--font-serif);
+      font-size: 1rem; color: var(--cream); line-height: 1.9;
+    }
+    .regalos-box strong { color: var(--gold); }
+
+    /* ══════════════════════════════════════════════════════
+       FORMULARIO RSVP
+    ══════════════════════════════════════════════════════ */
+    .rsvp-form {
+      display: flex; flex-direction: column;
+      gap: 14px; margin-top: 36px;
+      text-align: left;
+    }
+    .form-campo label {
+      display: block;
+      font-family: var(--font-sans);
+      font-size: .55rem; letter-spacing: .3em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .form-campo input,
+    .form-campo select {
+      width: 100%;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(201,168,76,.25);
+      color: var(--cream);
+      font-family: var(--font-serif); font-size: 1rem;
+      padding: 16px 18px; outline: none;
+      transition: border-color .3s ease;
+      -webkit-appearance: none; border-radius: 0;
+    }
+    .form-campo input:focus,
+    .form-campo select:focus { border-color: var(--gold); }
+    .form-campo select option { background: var(--black); color: var(--cream); }
+
+    /* Flecha del select */
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute; right: 18px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--gold); pointer-events: none; font-size: .85rem;
+    }
+
+    /* Botón enviar */
+    .btn-enviar {
+      width: 100%; background: transparent;
+      border: 1px solid var(--gold); color: var(--gold);
+      font-family: var(--font-sans);
+      font-size: .65rem; letter-spacing: .3em;
+      text-transform: uppercase;
+      padding: 20px; cursor: pointer;
+      margin-top: 8px;
+      position: relative; overflow: hidden;
+      transition: color .4s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-enviar::after {
+      content: ''; position: absolute; inset: 0;
+      background: var(--gold);
+      transform: translateY(100%);
+      transition: transform .4s ease; z-index: 0;
+    }
+    .btn-enviar span { position: relative; z-index: 1; }
+    .btn-enviar:hover::after { transform: translateY(0); }
+    .btn-enviar:hover { color: var(--black); }
+    .btn-enviar:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Mensaje de éxito */
+    #msg-exito {
+      display: none; text-align: center;
+      padding: 40px 20px;
+      border: 1px solid rgba(201,168,76,.3);
+      animation: aparecer .6s ease;
+    }
+    #msg-exito .exito-icono { font-size: 2.5rem; margin-bottom: 14px; display: block; }
+    #msg-exito h3 {
+      font-family: var(--font-script); font-size: 2.2rem;
+      color: var(--gold); margin-bottom: 8px;
+    }
+    #msg-exito p {
+      font-family: var(--font-serif); font-size: 1rem;
+      color: var(--gray); line-height: 1.8;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════════════════════ */
+    footer {
+      background: var(--black);
+      border-top: 1px solid rgba(201,168,76,.1);
+      padding: 56px 28px; text-align: center;
+    }
+    .footer-nombres {
+      font-family: var(--font-script);
+      font-size: 2.8rem; color: var(--gold); margin-bottom: 6px;
+    }
+    .footer-meta {
+      font-family: var(--font-sans);
+      font-size: .55rem; letter-spacing: .35em;
+      text-transform: uppercase; color: var(--gray);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       ANIMACIONES
+    ══════════════════════════════════════════════════════ */
+    @keyframes subirFade {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes aparecer {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes pulsarLinea {
+      0%,100% { opacity: 1; transform: scaleY(1); }
+      50%      { opacity: .3; transform: scaleY(.6); }
+    }
+
+    /* Scroll Reveal */
+    .reveal {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity .8s ease, transform .8s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .delay-1 { transition-delay: .1s; }
+    .delay-2 { transition-delay: .2s; }
+    .delay-3 { transition-delay: .3s; }
+    .delay-4 { transition-delay: .4s; }
+
+    /* ══════════════════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════════════════ */
+    @media (min-width: 480px) {
+      .detalles-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (min-width: 768px) {
+      .seccion   { padding: 100px 48px; }
+      #frase     { padding: 90px 48px; }
+      #dresscode { padding: 100px 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PANTALLA INICIAL
+  ═══════════════════════════════════════════════════════ -->
+  <div id="splash" role="dialog" aria-modal="true" aria-label="Invitación de boda">
+    <p class="splash-pre">Con todo nuestro amor, te invitamos</p>
+    <div class="splash-nombres">
+      Miguel<span class="splash-amp">&amp;</span>Daniela
+    </div>
+    <div class="splash-linea"></div>
+    <p class="splash-fecha">14 · Noviembre · 2026</p>
+    <button class="btn-abrir" onclick="abrirInvitacion()">
+      <span>✦ &nbsp;Abrir Invitación&nbsp; ✦</span>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       CONTENIDO PRINCIPAL
+  ═══════════════════════════════════════════════════════ -->
+  <main id="contenido">
+
+    <!-- ── HERO ─────────────────────────────────────────── -->
+    <section id="hero">
+      <!-- foto.jpg debe estar en la misma carpeta -->
+      <div class="hero-fondo" role="img" aria-label="Foto de Miguel y Daniela"></div>
+      <div class="hero-overlay" aria-hidden="true"></div>
+      <div class="hero-contenido">
+        <p class="hero-pre">Nos casamos</p>
+        <h1 class="hero-nombres">
+          Miguel<span class="hero-amp">&amp;</span>Daniela
+        </h1>
+        <div class="hero-linea" aria-hidden="true"></div>
+        <p class="hero-fecha">14 · Noviembre · 2026</p>
+      </div>
+      <div class="hero-scroll" aria-hidden="true">
+        <span class="hero-scroll-label">Desliza</span>
+        <div class="hero-scroll-linea"></div>
+      </div>
+    </section>
+
+    <!-- ── FRASE ROMÁNTICA ──────────────────────────────── -->
+    <div id="frase">
+      <div class="frase-comilla reveal" aria-hidden="true">"</div>
+      <blockquote class="frase-texto reveal delay-1">
+        El amor no se mira, se vive.<br>
+        No se explica, se siente.<br>
+        Y hoy decidimos vivirlo y sentirlo juntos,<br>
+        para siempre.
+      </blockquote>
+      <div class="ornamento reveal delay-2" aria-hidden="true">✦ &nbsp; ✦ &nbsp; ✦</div>
+      <p class="frase-firma reveal delay-3">― Miguel &amp; Daniela</p>
+    </div>
+
+    <!-- ── CONTADOR REGRESIVO ───────────────────────────── -->
+    <div class="seccion" id="contador">
+      <p class="sec-label reveal">Faltan...</p>
+      <h2 class="sec-titulo reveal">Cuenta Regresiva</h2>
+      <div class="linea-oro reveal" aria-hidden="true"></div>
+      <div class="contador-grid" role="timer" aria-live="off">
+        <div class="contador-item reveal">
+          <span class="contador-num" id="cd-dias">--</span>
+          <span class="contador-lab">Días</span>
+        </div>
+        <div class="contador-item reveal delay-1">
+          <span class="contador-num" id="cd-horas">--</span>
+          <span class="contador-lab">Horas</span>
+        </div>
+        <div class="contador-item reveal delay-2">
+          <span class="contador-num" id="cd-minutos">--</span>
+          <span class="contador-lab">Min</span>
+        </div>
+        <div class="contador-item reveal delay-3">
+          <span class="contador-num" id="cd-segundos">--</span>
+          <span class="contador-lab">Seg</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DETALLES DEL EVENTO ──────────────────────────── -->
+    <div class="seccion" id="detalles">
+      <p class="sec-label reveal">Anota en tu agenda</p>
+      <h2 class="sec-titulo reveal">Detalles del Evento</h2>
+      <div class="linea-oro reveal" aria-hidden="true"></div>
+
+      <div class="detalles-grid">
+        <div class="detalle-card reveal">
+          <span class="detalle-icon" aria-hidden="true">📅</span>
+          <p class="detalle-label">Fecha</p>
+          <p class="detalle-valor">Sábado<br>14 de Noviembre<br>2026</p>
+        </div>
+        <div class="detalle-card reveal delay-1">
+          <span class="detalle-icon" aria-hidden="true">🕟</span>
+          <p class="detalle-label">Hora</p>
+          <p class="detalle-valor grande">4:30 PM</p>
+          <p class="detalle-valor" style="font-size:.85rem;color:var(--gray);margin-top:4px;">Ceremonia</p>
+        </div>
+        <div class="detalle-card reveal delay-2" style="grid-column: 1 / -1;">
+          <span class="detalle-icon" aria-hidden="true">📍</span>
+          <p class="detalle-label">Lugar</p>
+          <p class="detalle-valor">Hacienda la Ventana<br>Paso de la Torre</p>
+        </div>
+      </div>
+
+      <a
+        href="https://maps.app.goo.gl/sUXLxB5GAmroM89T9"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-maps reveal delay-3"
+      >
+        📍 &nbsp; Cómo llegar
+      </a>
+    </div>
+
+    <!-- ── DRESS CODE & REGALOS ─────────────────────────── -->
+    <div id="dresscode">
+      <div class="inner">
+        <p class="sec-label reveal">Con cariño pedimos</p>
+        <h2 class="sec-titulo reveal">Dress Code &amp; Regalos</h2>
+        <div class="linea-oro reveal" aria-hidden="true"></div>
+
+        <div class="dresscode-grid">
+          <div class="dc-card reveal">
+            <span class="dcicon" aria-hidden="true">👔</span>
+            <h3>Sugerido</h3>
+            <p>Medio formal<br><br>Vestidos elegantes, trajes, blusas formales</p>
+          </div>
+          <div class="dc-card prohibido reveal delay-1">
+            <span class="dcicon" aria-hidden="true">🚫</span>
+            <h3>Por favor evitar</h3>
+            <p>Jeans u outfit casual<br><br>Ayúdanos a mantener la elegancia del día</p>
+          </div>
+        </div>
+
+        <div class="regalos-box reveal">
+          <span class="detalle-icon" aria-hidden="true">💌</span>
+          <p class="detalle-label" style="margin-bottom:12px;">Regalos</p>
+          <p>
+            Tu presencia es el mejor regalo que nos puedes dar.<br>
+            Si deseas obsequiarnos algo,
+            <strong>lluvia de sobres</strong> será siempre bienvenida con mucho amor.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RSVP ─────────────────────────────────────────── -->
+    <div class="seccion" id="rsvp">
+      <p class="sec-label reveal">¿Podrás acompañarnos?</p>
+      <h2 class="sec-titulo reveal">Confirmación</h2>
+      <div class="linea-oro reveal" aria-hidden="true"></div>
+      <p class="reveal" style="font-family:var(--font-serif);color:var(--gray);line-height:1.8;margin-bottom:4px;">
+        Por favor confirma antes del
+        <strong style="color:var(--cream);">1 de noviembre de 2026</strong>
+      </p>
+
+      <!-- FORMULARIO -->
+      <form class="rsvp-form reveal" id="form-rsvp" onsubmit="enviarRSVP(event)" novalidate>
+
+        <div class="form-campo">
+          <label for="nombre">Nombre Completo</label>
+          <input
+            type="text" id="nombre" name="nombre"
+            placeholder="Tu nombre completo"
+            required maxlength="120" autocomplete="name"
+          >
+        </div>
+
+        <div class="form-campo">
+          <label for="invitados">Número de personas</label>
+          <div class="select-wrap">
+            <select id="invitados" name="invitados" required>
+              <option value="" disabled selected>Selecciona...</option>
+              <option value="1">Solo yo — 1 persona</option>
+              <option value="2">2 personas</option>
+              <option value="3">3 personas</option>
+              <option value="4">4 personas</option>
+              <option value="5">5 personas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-campo">
+          <label for="asistencia">¿Asistirás?</label>
+          <div class="select-wrap">
+            <select id="asistencia" name="asistencia" required>
+              <option value="" disabled selected>Selecciona...</option>
+              <option value="Sí">✓  Sí, ahí estaré con mucho gusto</option>
+              <option value="No">✗  Lamentablemente no podré asistir</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-enviar" id="btn-enviar">
+          <span id="txt-btn">✦ &nbsp;Confirmar Asistencia&nbsp; ✦</span>
+        </button>
+      </form>
+
+      <!-- Mensaje de éxito -->
+      <div id="msg-exito" role="alert">
+        <span class="exito-icono" aria-hidden="true">💛</span>
+        <h3>¡Gracias!</h3>
+        <p>Tu respuesta fue registrada con éxito.<br>¡Nos vemos el 14 de noviembre! 🥂</p>
+      </div>
+    </div>
+
+    <!-- ── FOOTER ────────────────────────────────────────── -->
+    <footer>
+      <div class="footer-nombres">Miguel &amp; Daniela</div>
+      <div class="linea-oro" style="margin:16px auto;" aria-hidden="true"></div>
+      <p class="footer-meta">
+        14 · Noviembre · 2026 &nbsp;·&nbsp; Hacienda la Ventana &nbsp;·&nbsp; Paso de la Torre
+      </p>
+    </footer>
+
+  </main><!-- /contenido -->
+
+  <script>
+    /* ================================================================
+       CONFIGURACIÓN
+    ================================================================ */
+
+    /**
+     * SCRIPT_URL — URL de tu Google Apps Script (Web App)
+     * ─────────────────────────────────────────────────────────────────
+     * PASOS PARA OBTENERLA (5 minutos, gratis):
+     *
+     *  1. Ve a https://sheets.google.com → crea una hoja nueva.
+     *     Nombra las columnas en la fila 1:
+     *       A → Timestamp   B → Nombre
+     *       C → Invitados   D → Asistencia
+     *
+     *  2. Menú → Extensiones → Apps Script
+     *
+     *  3. Borra el código y pega esto:
+     *
+     *       function doPost(e) {
+     *         var sheet = SpreadsheetApp
+     *           .getActiveSpreadsheet().getActiveSheet();
+     *         var data = JSON.parse(e.postData.contents);
+     *         sheet.appendRow([
+     *           new Date(),
+     *           data.nombre,
+     *           data.invitados,
+     *           data.asistencia
+     *         ]);
+     *         return ContentService
+     *           .createTextOutput(JSON.stringify({ ok: true }))
+     *           .setMimeType(ContentService.MimeType.JSON);
+     *       }
+     *
+     *  4. Guardar → "Implementar" → "Nueva implementación"
+     *       · Tipo: Aplicación web
+     *       · Ejecutar como: Yo
+     *       · Acceso: Cualquier persona
+     *
+     *  5. Copia la URL generada y pégala aquí abajo:
+     */
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgEUee6H49JC-CJ26HPAMcYpqNgYYC8Daycc0-nRJRf4mPhojToeaG_DMldGHQOv4U/exec';
+
+    /* ================================================================
+       ABRIR INVITACIÓN
+       Se ejecuta cuando el usuario hace clic en "Abrir Invitación"
+    ================================================================ */
+    function abrirInvitacion() {
+      // 1. Ocultar splash con fade
+      document.getElementById('splash').classList.add('oculto');
+
+      // 2. Mostrar contenido principal
+      const contenido = document.getElementById('contenido');
+      requestAnimationFrame(() => contenido.classList.add('visible'));
+
+      // 3. Activar animaciones de scroll
+      iniciarScrollReveal();
+
+      // 4. Iniciar contador regresivo
+      iniciarContador();
+    }
+
+    /* ================================================================
+       SCROLL REVEAL — Fade-in al hacer scroll
+    ================================================================ */
+    function iniciarScrollReveal() {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target); // animar solo la primera vez
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -30px 0px' }
+      );
+
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
+
+    /* ================================================================
+       CONTADOR REGRESIVO EN TIEMPO REAL
+       Objetivo: 14 de noviembre de 2026 a las 4:30 PM
+    ================================================================ */
+    function iniciarContador() {
+      const boda = new Date('2026-11-14T16:30:00');
+      const pad  = n => String(n).padStart(2, '0');
+
+      function actualizar() {
+        const diff = boda - Date.now();
+
+        if (diff <= 0) {
+          ['dias','horas','minutos','segundos'].forEach(id => {
+            document.getElementById(`cd-${id}`).textContent = '00';
+          });
+          return;
+        }
+
+        document.getElementById('cd-dias').textContent     = pad(Math.floor(diff / 86400000));
+        document.getElementById('cd-horas').textContent    = pad(Math.floor((diff % 86400000) / 3600000));
+        document.getElementById('cd-minutos').textContent  = pad(Math.floor((diff % 3600000)  / 60000));
+        document.getElementById('cd-segundos').textContent = pad(Math.floor((diff % 60000)    / 1000));
+      }
+
+      actualizar();
+      setInterval(actualizar, 1000);
+    }
+
+    /* ================================================================
+       FORMULARIO RSVP — ENVÍO A GOOGLE SHEETS
+
+       DASHBOARD EN GOOGLE SHEETS (una vez que lleguen datos):
+       ──────────────────────────────────────────────────────
+       · Filtrar asistentes:
+           Datos → Crear filtro → columna D = "Sí"
+
+       · Total de personas confirmadas (pon esto en cualquier celda libre):
+           =SUMIF(D:D,"Sí",C:C)
+
+       · Exportar a Excel:
+           Archivo → Descargar → Microsoft Excel (.xlsx)
+
+       · Dashboard visual:
+           Insertar → Gráfico → Torta (columna D para asistencia)
+           Comparte la hoja en "Solo lectura" para monitoreo en tiempo real.
+    ================================================================ */
+    async function enviarRSVP(event) {
+      event.preventDefault();
+
+      const nombre     = document.getElementById('nombre').value.trim();
+      const invitados  = document.getElementById('invitados').value;
+      const asistencia = document.getElementById('asistencia').value;
+
+      // Validación mínima en el cliente
+      if (!nombre || !invitados || !asistencia) return;
+
+      const btn = document.getElementById('btn-enviar');
+      const txt = document.getElementById('txt-btn');
+
+      btn.disabled    = true;
+      txt.textContent = 'Enviando...';
+
+      try {
+        /*
+         * mode: 'no-cors' es obligatorio con Google Apps Script.
+         * El dato SÍ se escribe en Sheets aunque no podamos leer la respuesta.
+         */
+        await fetch(SCRIPT_URL, {
+          method:  'POST',
+          mode:    'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, invitados, asistencia })
+        });
+
+        mostrarExito();
+
+      } catch (err) {
+        console.error('Error al enviar RSVP:', err);
+        txt.textContent = 'Error de red. Intenta de nuevo.';
+        btn.disabled = false;
+        setTimeout(() => { txt.textContent = '✦  Confirmar Asistencia  ✦'; }, 3500);
+      }
+    }
+
+    function mostrarExito() {
+      document.getElementById('form-rsvp').style.display  = 'none';
+      document.getElementById('msg-exito').style.display  = 'block';
+      document.getElementById('form-rsvp').reset();
+    }
+  </script>
+</body>
+</html>
