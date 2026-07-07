@@ -419,6 +419,93 @@
     .form-campo input:focus,
     .form-campo select:focus { border-color: var(--gold); }
     .form-campo select option { background: var(--black); color: var(--cream); }
+    .form-ayuda {
+      font-family: var(--font-serif);
+      color: var(--gray);
+      font-size: .95rem;
+      line-height: 1.6;
+      margin-top: 8px;
+    }
+    .guest-status {
+      display: none;
+      font-family: var(--font-serif);
+      font-size: .95rem;
+      line-height: 1.7;
+      color: var(--gray);
+      margin-top: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(201,168,76,.18);
+      background: rgba(255,255,255,.025);
+    }
+    .guest-status.visible { display: block; }
+    .guest-status strong { color: var(--cream); font-weight: 500; }
+    .guest-status.error { border-color: rgba(180,60,60,.35); color: #CFA0A0; }
+    .guest-matches {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .guest-matches.visible { display: flex; }
+    .guest-match {
+      width: 100%;
+      text-align: left;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(201,168,76,.22);
+      color: var(--cream);
+      cursor: pointer;
+      padding: 14px 16px;
+      font-family: var(--font-serif);
+      font-size: .98rem;
+      line-height: 1.6;
+      transition: border-color .3s ease, background .3s ease;
+    }
+    .guest-match:hover,
+    .guest-match:focus {
+      border-color: var(--gold);
+      background: rgba(201,168,76,.08);
+      outline: none;
+    }
+    .guest-match small {
+      display: block;
+      color: var(--gold);
+      font-family: var(--font-sans);
+      font-size: .52rem;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .guest-selected {
+      display: none;
+      margin-top: 14px;
+      padding: 18px 18px;
+      border: 1px solid rgba(201,168,76,.34);
+      background: rgba(201,168,76,.06);
+      text-align: left;
+    }
+    .guest-selected.visible { display: block; }
+    .guest-selected h3 {
+      font-family: var(--font-sans);
+      font-size: .58rem;
+      letter-spacing: .3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .guest-selected ul {
+      list-style: none;
+      margin: 0 0 12px;
+      padding: 0;
+      color: var(--cream);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+    .guest-selected p {
+      color: var(--gray);
+      font-family: var(--font-serif);
+      font-size: .95rem;
+      line-height: 1.7;
+    }
 
     /* Flecha del select */
     .select-wrap { position: relative; }
@@ -680,34 +767,31 @@
       <div class="linea-oro reveal" aria-hidden="true"></div>
       <p class="reveal" style="font-family:var(--font-serif);color:var(--gray);line-height:1.8;margin-bottom:4px;">
         Por favor confirma antes del
-        <strong style="color:var(--cream);">1 de noviembre de 2026</strong>
+        <strong style="color:var(--cream);">5 de noviembre de 2026</strong>
       </p>
 
       <!-- FORMULARIO -->
       <form class="rsvp-form reveal" id="form-rsvp" onsubmit="enviarRSVP(event)" novalidate>
 
         <div class="form-campo">
-          <label for="nombre">Nombre Completo</label>
+          <label for="buscar-invitado">Escribe tu nombre aquí</label>
           <input
-            type="text" id="nombre" name="nombre"
-            placeholder="Tu nombre completo"
-            required maxlength="120" autocomplete="name"
+            type="text" id="buscar-invitado" name="buscar_invitado"
+            placeholder="Escribe tu nombre aquí"
+            autocomplete="name"
           >
+          <p class="form-ayuda">Buscaremos tu invitación para mostrar todos los cupos de tu grupo.</p>
+          <div id="guest-status" class="guest-status" role="status" aria-live="polite"></div>
+          <div id="guest-matches" class="guest-matches"></div>
+          <div id="guest-selected" class="guest-selected" aria-live="polite"></div>
         </div>
 
-        <div class="form-campo">
-          <label for="invitados">Número de personas</label>
-          <div class="select-wrap">
-            <select id="invitados" name="invitados" required>
-              <option value="" disabled selected>Selecciona...</option>
-              <option value="1">Solo yo — 1 persona</option>
-              <option value="2">2 personas</option>
-              <option value="3">3 personas</option>
-              <option value="4">4 personas</option>
-              <option value="5">5 personas</option>
-            </select>
-          </div>
-        </div>
+        <input type="hidden" id="grupo_id" name="grupo_id">
+        <input type="hidden" id="nombres_invitados" name="nombres_invitados">
+        <input type="hidden" id="cantidad_invitados" name="cantidad_invitados">
+        <input type="hidden" id="nombre_buscado" name="nombre_buscado">
+        <input type="hidden" id="nombre" name="nombre">
+        <input type="hidden" id="invitados" name="invitados">
 
         <div class="form-campo">
           <label for="asistencia">¿Asistirás?</label>
@@ -785,7 +869,10 @@
      *
      *  5. Copia la URL generada y pégala aquí abajo:
      */
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgEUee6H49JC-CJ26HPAMcYpqNgYYC8Daycc0-nRJRf4mPhojToeaG_DMldGHQOv4U/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwS2q8JUl46LbbAhMKqiPqkYff9N5ks2D8788WWcrdXx6YuoTt33kIOoi64gd283CvH/exec';
+    let selectedGuestGroup = null;
+    let lastSearchedName = '';
+    let guestSearchReady = false;
 
     /* ================================================================
        ABRIR INVITACIÓN
@@ -804,6 +891,9 @@
 
       // 4. Iniciar contador regresivo
       iniciarContador();
+
+      // 5. Preparar búsqueda de invitados
+      iniciarBusquedaInvitados();
     }
 
     /* ================================================================
@@ -854,6 +944,205 @@
     }
 
     /* ================================================================
+       BÚSQUEDA DE INVITADOS — GOOGLE SHEETS
+    ================================================================ */
+    function normalizeText(text) {
+      return String(text || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function debounce(fn, delay) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
+    }
+
+    function iniciarBusquedaInvitados() {
+      if (guestSearchReady) return;
+      guestSearchReady = true;
+
+      const input = document.getElementById('buscar-invitado');
+      if (!input) return;
+
+      input.addEventListener('input', debounce(async () => {
+        const query = input.value.trim();
+        clearGuestSelection(false);
+
+        if (normalizeText(query).length < 3) {
+          setGuestStatus('Escribe al menos 3 caracteres para buscar tu invitación.');
+          return;
+        }
+
+        setGuestStatus('Buscando tu invitación...');
+
+        try {
+          const matches = await searchGuestGroup(query);
+          renderGuestMatches(matches, query);
+        } catch (err) {
+          console.error('Error buscando invitado:', err);
+          setGuestStatus('No pudimos buscar en este momento. Intenta de nuevo o comunícate con los novios.', true);
+        }
+      }, 300));
+    }
+
+    async function searchGuestGroup(query) {
+      try {
+        return await searchGuestGroupJSONP(query);
+      } catch (jsonpErr) {
+        console.warn('JSONP no disponible, intentando fetch:', jsonpErr);
+      }
+
+      const params = new URLSearchParams({
+        action: 'searchGuest',
+        q: query
+      });
+
+      const response = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+      if (!response.ok) throw new Error('Respuesta no válida');
+      const data = await response.json();
+      return Array.isArray(data.matches) ? data.matches : [];
+    }
+
+    function searchGuestGroupJSONP(query) {
+      return new Promise((resolve, reject) => {
+        const callbackName = `guestSearchCallback_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const script = document.createElement('script');
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error('Tiempo de espera agotado'));
+        }, 9000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        window[callbackName] = (data) => {
+          cleanup();
+          resolve(Array.isArray(data && data.matches) ? data.matches : []);
+        };
+
+        const params = new URLSearchParams({
+          action: 'searchGuest',
+          q: query,
+          callback: callbackName
+        });
+
+        script.src = `${SCRIPT_URL}?${params.toString()}`;
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('No se pudo cargar JSONP'));
+        };
+        document.body.appendChild(script);
+      });
+    }
+
+    function renderGuestMatches(matches, searchedName) {
+      const list = document.getElementById('guest-matches');
+      if (!list) return;
+
+      list.innerHTML = '';
+      list.classList.remove('visible');
+
+      if (!matches.length) {
+        setGuestStatus('No encontramos tu invitación. Verifica tu nombre o comunícate con los novios.', true);
+        return;
+      }
+
+      if (matches.length === 1) {
+        selectGuestGroup(matches[0], searchedName);
+        return;
+      }
+
+      setGuestStatus('Encontramos varias invitaciones parecidas. Escribe tu nombre completo o selecciona tu grupo.');
+      matches.forEach(group => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'guest-match';
+        button.innerHTML = `
+          ${group.names.map(name => escapeHTML(name)).join('<br>')}
+          <small>Cupos asignados: ${escapeHTML(group.quantity)}</small>
+        `;
+        button.addEventListener('click', () => selectGuestGroup(group, searchedName));
+        list.appendChild(button);
+      });
+      list.classList.add('visible');
+    }
+
+    function selectGuestGroup(group, searchedName) {
+      selectedGuestGroup = group;
+      lastSearchedName = searchedName || document.getElementById('buscar-invitado').value.trim();
+      fillHiddenRSVPFields(group, lastSearchedName);
+
+      const nombre = document.getElementById('nombre');
+      if (nombre) nombre.value = lastSearchedName;
+
+      const invitados = document.getElementById('invitados');
+      if (invitados) invitados.value = String(group.quantity);
+
+      const selected = document.getElementById('guest-selected');
+      const matches = document.getElementById('guest-matches');
+      if (matches) matches.classList.remove('visible');
+      setGuestStatus('');
+
+      selected.innerHTML = `
+        <h3>Encontramos tu invitación</h3>
+        <ul>${group.names.map(name => `<li>${escapeHTML(name)}</li>`).join('')}</ul>
+        <p><strong>Cupos asignados: ${escapeHTML(group.quantity)}</strong><br>Ahora puedes continuar con tu confirmación.</p>
+      `;
+      selected.classList.add('visible');
+    }
+
+    function fillHiddenRSVPFields(group, searchedName) {
+      document.getElementById('grupo_id').value = group.grupoId || '';
+      document.getElementById('nombres_invitados').value = (group.names || []).join('\n');
+      document.getElementById('cantidad_invitados').value = group.quantity || '';
+      document.getElementById('nombre_buscado').value = searchedName || '';
+    }
+
+    function clearGuestSelection(showMessage = true) {
+      selectedGuestGroup = null;
+      ['grupo_id','nombres_invitados','cantidad_invitados','nombre_buscado','nombre','invitados'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      const selected = document.getElementById('guest-selected');
+      const matches = document.getElementById('guest-matches');
+      if (selected) {
+        selected.innerHTML = '';
+        selected.classList.remove('visible');
+      }
+      if (matches) {
+        matches.innerHTML = '';
+        matches.classList.remove('visible');
+      }
+      if (showMessage) setGuestStatus('');
+    }
+
+    function setGuestStatus(message, isError = false) {
+      const status = document.getElementById('guest-status');
+      if (!status) return;
+
+      status.textContent = message;
+      status.classList.toggle('visible', Boolean(message));
+      status.classList.toggle('error', Boolean(isError));
+    }
+
+    function escapeHTML(value) {
+      const div = document.createElement('div');
+      div.textContent = String(value || '');
+      return div.innerHTML;
+    }
+
+    /* ================================================================
        FORMULARIO RSVP — ENVÍO A GOOGLE SHEETS
 
        DASHBOARD EN GOOGLE SHEETS (una vez que lleguen datos):
@@ -877,9 +1166,20 @@
       const nombre     = document.getElementById('nombre').value.trim();
       const invitados  = document.getElementById('invitados').value;
       const asistencia = document.getElementById('asistencia').value;
+      const grupoId    = document.getElementById('grupo_id').value;
+      const nombresInvitados = document.getElementById('nombres_invitados').value;
+      const cantidadInvitados = document.getElementById('cantidad_invitados').value;
+      const nombreBuscado = document.getElementById('nombre_buscado').value;
 
-      // Validación mínima en el cliente
-      if (!nombre || !invitados || !asistencia) return;
+      if (!selectedGuestGroup || !grupoId) {
+        setGuestStatus('Primero busca tu nombre y selecciona tu invitación para confirmar asistencia.', true);
+        document.getElementById('buscar-invitado').focus();
+        return;
+      }
+      if (!nombre || !invitados || !asistencia) {
+        setGuestStatus('Selecciona tu invitación y confirma si podrás asistir.', true);
+        return;
+      }
 
       const btn = document.getElementById('btn-enviar');
       const txt = document.getElementById('txt-btn');
@@ -896,7 +1196,16 @@
           method:  'POST',
           mode:    'no-cors',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nombre, invitados, asistencia })
+          body: JSON.stringify({
+            nombre,
+            invitados,
+            asistencia,
+            grupo_id: grupoId,
+            nombres_invitados: nombresInvitados,
+            cantidad_invitados: cantidadInvitados,
+            nombre_buscado: nombreBuscado,
+            confirmacion: asistencia
+          })
         });
 
         mostrarExito();
