@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#0A0A0A">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#6E1F2C">
 
   <!-- ── Vista previa para WhatsApp / redes sociales ── -->
   <meta property="og:title"       content="Miguel & Daniela · 14 · Nov · 2026">
@@ -27,12 +27,18 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --gold:        #C9A84C;
-      --gold-light:  #E2C47A;
-      --black:       #0A0A0A;
-      --black2:      #111111;
-      --cream:       #F0EBE0;
-      --gray:        #888888;
+      --gold:        #6E1F2C;
+      --gold-light:  #9B4B58;
+      --black:       #E7D8CE;
+      --black2:      #F6ECE4;
+      --cream:       #2B1D21;
+      --gray:        #6F625D;
+      --wine:        #6E1F2C;
+      --wine-dark:   #2D161B;
+      --paper:       #E7D8CE;
+      --paper-soft:  #F6ECE4;
+      --champagne:   #D9BEB1;
+      --accent-rgb:  110,31,44;
       --font-script: 'Great Vibes', cursive;
       --font-serif:  'Cormorant Garamond', serif;
       --font-sans:   'Montserrat', sans-serif;
@@ -41,67 +47,134 @@
     html { scroll-behavior: smooth; }
 
     body {
-      background: var(--black);
+      background: var(--paper);
       color: var(--cream);
       font-family: var(--font-serif);
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
     }
+    body.splash-activo {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    body.splash-activo #contenido { display: none; }
 
     /* ══════════════════════════════════════════════════════
        PANTALLA INICIAL (SPLASH)
     ══════════════════════════════════════════════════════ */
     #splash {
       position: fixed; inset: 0; z-index: 9999;
-      background: var(--black);
+      height: 100dvh;
+      min-height: 100dvh;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(246,236,228,.88), rgba(231,216,206,.98)),
+        var(--paper);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       gap: 4px;
+      padding: clamp(24px, 5svh, 42px) 22px;
       transition: opacity .9s ease, visibility .9s ease;
+    }
+    #splash::before {
+      content: '';
+      position: absolute;
+      inset: clamp(14px, 3vw, 28px);
+      border: 1px solid rgba(var(--accent-rgb),.2);
+      pointer-events: none;
+    }
+    #splash::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: clamp(28px, 8svh, 78px);
+      width: 1px;
+      height: clamp(46px, 11svh, 100px);
+      background: linear-gradient(to bottom, transparent, rgba(var(--accent-rgb),.34), transparent);
+      transform: translateX(-50%);
+      pointer-events: none;
     }
     #splash.oculto { opacity: 0; visibility: hidden; pointer-events: none; }
 
+    .splash-shell {
+      position: relative;
+      z-index: 1;
+      width: min(620px, 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(clamp(10px, 4svh, 34px));
+    }
+    .splash-monograma {
+      width: 52px; height: 52px;
+      border: 1px solid rgba(var(--accent-rgb),.32);
+      border-radius: 999px;
+      display: grid; place-items: center;
+      font-family: var(--font-serif);
+      font-size: .74rem; letter-spacing: .16em;
+      color: var(--wine);
+      margin-bottom: 28px;
+    }
+
     .splash-pre {
       font-family: var(--font-sans);
-      font-size: .6rem; letter-spacing: .5em;
-      text-transform: uppercase; color: var(--gold);
-      margin-bottom: 8px; text-align: center;
-      padding: 0 24px;
+      font-size: .58rem; letter-spacing: .48em;
+      text-transform: uppercase; color: var(--wine);
+      margin-bottom: 10px; text-align: center;
+      padding: 0 8px;
     }
     .splash-nombres {
       font-family: var(--font-script);
-      font-size: clamp(3.5rem, 14vw, 6rem);
+      font-size: clamp(2.65rem, 14.5vw, 6rem);
       color: var(--cream); line-height: 1; text-align: center;
+      white-space: nowrap;
+      max-width: 100%;
     }
     .splash-amp { color: var(--gold); }
     .splash-linea {
-      width: 80px; height: 1px;
-      background: linear-gradient(to right, transparent, var(--gold), transparent);
-      margin: 20px auto;
+      width: 86px; height: 1px;
+      background: linear-gradient(to right, transparent, var(--champagne), transparent);
+      margin: 22px auto 18px;
     }
     .splash-fecha {
       font-family: var(--font-sans);
       font-size: .65rem; letter-spacing: .35em;
       text-transform: uppercase; color: var(--gray);
-      margin-bottom: 44px;
+      margin-bottom: 14px;
+    }
+    .splash-sub {
+      max-width: 360px;
+      margin: 0 auto 34px;
+      padding: 0 12px;
+      font-family: var(--font-serif);
+      font-size: clamp(1rem, 3vw, 1.18rem);
+      line-height: 1.75;
+      color: rgba(43,29,33,.72);
+      text-align: center;
     }
 
     /* Botón abrir invitación */
     .btn-abrir {
-      border: 1px solid var(--gold);
-      color: var(--gold); background: transparent;
+      border: 1px solid var(--wine);
+      color: var(--paper-soft); background: var(--wine);
       font-family: var(--font-sans);
       font-size: .7rem; letter-spacing: .25em;
       text-transform: uppercase;
       padding: 18px 52px; cursor: pointer;
       position: relative; overflow: hidden;
-      transition: color .4s ease;
-      min-width: 220px;
+      transition: transform .3s ease, box-shadow .3s ease, background .3s ease;
+      width: min(454px, 100%);
+      min-width: 0;
+      box-shadow: 0 18px 36px rgba(var(--accent-rgb),.18);
       -webkit-tap-highlight-color: transparent;
     }
     .btn-abrir::after {
       content: ''; position: absolute; inset: 0;
-      background: var(--gold);
+      background: var(--wine-dark);
       transform: scaleX(0); transform-origin: left;
       transition: transform .4s ease; z-index: 0;
     }
@@ -109,12 +182,22 @@
     .btn-abrir:hover::after,
     .btn-abrir:active::after { transform: scaleX(1); }
     .btn-abrir:hover,
-    .btn-abrir:active { color: var(--black); }
+    .btn-abrir:active {
+      color: var(--paper-soft);
+      transform: translateY(-1px);
+      box-shadow: 0 22px 42px rgba(var(--accent-rgb),.24);
+    }
 
     /* ══════════════════════════════════════════════════════
        CONTENIDO PRINCIPAL
     ══════════════════════════════════════════════════════ */
-    #contenido { opacity: 0; transition: opacity 1.2s ease; }
+    #contenido {
+      opacity: 0;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(110,31,44,.08), transparent 30rem),
+        var(--paper);
+      transition: opacity 1.2s ease;
+    }
     #contenido.visible { opacity: 1; }
 
     /* ══════════════════════════════════════════════════════
@@ -132,7 +215,7 @@
     .hero-fondo {
       position: absolute; inset: 0;
       background: url('foto.jpg') center top / cover no-repeat;
-      filter: brightness(.38) saturate(.9);
+      filter: brightness(.48) saturate(.85);
       transform: scale(1.08);
       transition: transform 10s ease;
     }
@@ -143,9 +226,9 @@
       position: absolute; inset: 0;
       background: linear-gradient(
         180deg,
-        rgba(0,0,0,.15) 0%,
-        rgba(0,0,0,.05) 50%,
-        rgba(0,0,0,.65) 100%
+        rgba(38,14,20,.38) 0%,
+        rgba(38,14,20,.12) 48%,
+        rgba(38,14,20,.72) 100%
       );
     }
 
@@ -157,7 +240,7 @@
     .hero-pre {
       font-family: var(--font-sans);
       font-size: .6rem; letter-spacing: .5em;
-      text-transform: uppercase; color: var(--gold);
+      text-transform: uppercase; color: #F7F2ED;
       margin-bottom: 16px;
       opacity: 0; animation: subirFade 1s .6s ease forwards;
     }
@@ -170,10 +253,10 @@
       display: block;
       word-break: break-word;
     }
-    .hero-amp { color: var(--gold); }
+    .hero-amp { color: #EACFD4; }
     .hero-linea {
       width: 55px; height: 1px;
-      background: var(--gold);
+      background: #EACFD4;
       margin: 22px auto;
       display: block;
       opacity: 0; animation: subirFade 1s 1.2s ease forwards;
@@ -181,7 +264,7 @@
     .hero-fecha {
       font-family: var(--font-sans);
       font-size: .7rem; letter-spacing: .35em;
-      text-transform: uppercase; color: var(--cream);
+      text-transform: uppercase; color: #F7F2ED;
       opacity: 0; animation: subirFade 1s 1.4s ease forwards;
     }
 
@@ -198,11 +281,11 @@
     .hero-scroll-label {
       font-family: var(--font-sans);
       font-size: .55rem; letter-spacing: .35em;
-      text-transform: uppercase; color: var(--gold);
+      text-transform: uppercase; color: #F7F2ED;
     }
     .hero-scroll-linea {
       width: 1px; height: 40px;
-      background: linear-gradient(to bottom, var(--gold), transparent);
+      background: linear-gradient(to bottom, #F7F2ED, transparent);
       animation: pulsarLinea 2s ease infinite;
     }
 
@@ -229,41 +312,101 @@
       width: 48px; height: 1px;
       background: var(--gold); margin: 20px auto;
     }
+    #frase .sec-label,
+    #dresscode .sec-label {
+      color: var(--champagne);
+    }
+    #frase .sec-titulo,
+    #dresscode .sec-titulo {
+      color: var(--paper-soft);
+    }
+    #frase .linea-oro,
+    #dresscode .linea-oro {
+      background: var(--champagne);
+    }
 
     /* ══════════════════════════════════════════════════════
        FRASE ROMÁNTICA
     ══════════════════════════════════════════════════════ */
     #frase {
-      background: var(--black2);
+      background: var(--wine);
       padding: 70px 28px;
+      color: var(--paper-soft);
     }
     #frase::before, #frase::after {
       content: ''; display: block; width: 100%; height: 1px;
-      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      background: linear-gradient(to right, transparent, rgba(255,249,244,.48), transparent);
     }
     .frase-comilla {
       font-family: var(--font-serif);
       font-size: 5rem; line-height: .5;
-      color: var(--gold); opacity: .25;
+      color: var(--champagne); opacity: .42;
       margin-top: 36px; text-align: center;
     }
     .frase-texto {
       font-family: var(--font-serif);
       font-style: italic;
       font-size: clamp(1.1rem, 3.5vw, 1.5rem);
-      color: var(--cream); line-height: 1.9;
+      color: var(--paper-soft); line-height: 1.9;
       max-width: 540px; margin: 16px auto 24px;
       text-align: center;
     }
     .ornamento {
       text-align: center;
-      color: var(--gold); opacity: .5; letter-spacing: .5em;
+      color: var(--champagne); opacity: .72; letter-spacing: .5em;
     }
     .frase-firma {
       font-family: var(--font-sans);
       font-size: .58rem; letter-spacing: .35em;
-      text-transform: uppercase; color: var(--gray);
+      text-transform: uppercase; color: rgba(255,249,244,.74);
       margin-top: 12px; text-align: center; margin-bottom: 36px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       MOMENTOS
+    ══════════════════════════════════════════════════════ */
+    .momentos {
+      background:
+        linear-gradient(180deg, var(--wine) 0%, var(--wine-dark) 100%);
+      padding: 0 28px 84px;
+    }
+    .momentos-inner {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      max-width: 660px;
+      margin: 0 auto;
+    }
+    .momento-card {
+      background: var(--paper-soft);
+      padding: 8px;
+      box-shadow: 0 20px 48px rgba(45,22,27,.26);
+    }
+    .momento-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      object-fit: cover;
+    }
+    .momento-card.propuesta img {
+      object-position: center 35%;
+    }
+    .momento-card.anillo img {
+      object-position: center 45%;
+    }
+    .momentos-texto {
+      color: var(--paper-soft);
+      text-align: center;
+      padding: 14px 10px 0;
+    }
+    .momentos-texto .sec-label {
+      color: var(--champagne);
+      margin-bottom: 10px;
+    }
+    .momentos-texto p {
+      color: rgba(255,249,244,.82);
+      font-size: 1.02rem;
+      line-height: 1.8;
     }
 
     /* ══════════════════════════════════════════════════════
@@ -275,12 +418,12 @@
       gap: 10px; margin-top: 36px;
     }
     .contador-item {
-      border: 1px solid rgba(201,168,76,.2);
+      border: 1px solid rgba(var(--accent-rgb),.2);
       padding: 22px 6px 16px;
-      background: rgba(201,168,76,.03);
+      background: rgba(255,249,244,.56);
       transition: border-color .3s ease;
     }
-    .contador-item:hover { border-color: rgba(201,168,76,.5); }
+    .contador-item:hover { border-color: rgba(var(--accent-rgb),.5); }
     .contador-num {
       font-family: var(--font-serif);
       font-size: clamp(1.8rem, 7vw, 3.2rem);
@@ -303,15 +446,21 @@
       gap: 14px; margin-top: 36px;
     }
     .detalle-card {
-      border: 1px solid rgba(201,168,76,.2);
+      border: 1px solid rgba(var(--accent-rgb),.2);
       padding: 28px 20px;
+      background: rgba(255,249,244,.58);
       transition: border-color .3s ease, transform .3s ease;
     }
     .detalle-card:hover {
-      border-color: rgba(201,168,76,.5);
+      border-color: rgba(var(--accent-rgb),.5);
       transform: translateY(-2px);
     }
-    .detalle-icon { font-size: 1.4rem; margin-bottom: 10px; display: block; }
+    .detalle-icon {
+      display: block;
+      font-size: 1.35rem;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
     .detalle-label {
       font-family: var(--font-sans);
       font-size: .55rem; letter-spacing: .35em;
@@ -332,7 +481,7 @@
     .btn-maps {
       display: inline-flex; align-items: center; gap: 10px;
       margin-top: 36px;
-      background: var(--gold); color: var(--black);
+      background: var(--gold); color: #FFF9F4;
       font-family: var(--font-sans);
       font-size: .65rem; letter-spacing: .2em;
       text-transform: uppercase; font-weight: 500;
@@ -344,15 +493,17 @@
     .btn-maps:hover, .btn-maps:active {
       background: var(--gold-light);
       transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(201,168,76,.25);
+      box-shadow: 0 8px 30px rgba(var(--accent-rgb),.25);
     }
 
     /* ══════════════════════════════════════════════════════
        DRESS CODE & REGALOS
     ══════════════════════════════════════════════════════ */
     #dresscode {
-      background: var(--black2);
+      background:
+        linear-gradient(180deg, var(--wine) 0%, #561A25 100%);
       padding: 80px 28px;
+      color: var(--paper-soft);
     }
     #dresscode .inner {
       max-width: 660px; margin: 0 auto; text-align: center;
@@ -360,35 +511,55 @@
     .dresscode-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px; margin-top: 36px;
+      gap: 18px 26px; margin-top: 34px;
     }
     .dc-card {
-      border: 1px solid rgba(201,168,76,.2);
-      padding: 26px 16px; text-align: center;
+      border-top: 1px solid rgba(246,236,228,.24);
+      padding: 24px 0 6px; text-align: left;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      column-gap: 14px;
+      align-items: start;
     }
-    .dc-card .dcicon { font-size: 1.8rem; margin-bottom: 10px; display: block; }
+    .dc-card.full { grid-column: 1 / -1; }
+    .dc-card .dcicon {
+      display: block;
+      font-size: 1.35rem;
+      line-height: 1;
+      transform: translateY(2px);
+    }
+    .dc-card .dccopy { min-width: 0; }
     .dc-card h3 {
       font-family: var(--font-sans);
       font-size: .55rem; letter-spacing: .3em;
-      text-transform: uppercase; color: var(--gold);
+      text-transform: uppercase; color: var(--champagne);
       margin-bottom: 10px;
     }
     .dc-card p {
       font-family: var(--font-serif);
-      font-size: .95rem; color: var(--cream); line-height: 1.7;
+      font-size: 1rem; color: rgba(246,236,228,.9); line-height: 1.8;
     }
-    .dc-card.prohibido { border-color: rgba(180,60,60,.3); }
-    .dc-card.prohibido h3 { color: #C05050; }
+    .dc-card strong {
+      display: block;
+      font-weight: 500;
+      color: var(--paper-soft);
+      font-size: 1.22rem;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .dc-card.prohibido { border-color: rgba(246,236,228,.32); }
+    .dc-card.prohibido h3 { color: var(--champagne); }
 
     .regalos-box {
-      border: 1px solid rgba(201,168,76,.2);
+      border: 1px solid rgba(255,249,244,.24);
       padding: 30px 24px; margin-top: 20px;
+      background: rgba(45,22,27,.18);
     }
     .regalos-box p {
       font-family: var(--font-serif);
-      font-size: 1rem; color: var(--cream); line-height: 1.9;
+      font-size: 1rem; color: var(--paper-soft); line-height: 1.9;
     }
-    .regalos-box strong { color: var(--gold); }
+    .regalos-box strong { color: var(--champagne); }
 
     /* ══════════════════════════════════════════════════════
        FORMULARIO RSVP
@@ -397,6 +568,17 @@
       display: flex; flex-direction: column;
       gap: 14px; margin-top: 36px;
       text-align: left;
+    }
+    #rsvp {
+      background: var(--paper-soft);
+      border-top: 1px solid rgba(var(--accent-rgb),.12);
+      border-bottom: 1px solid rgba(var(--accent-rgb),.12);
+      max-width: none;
+    }
+    #rsvp > * {
+      max-width: 660px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .form-campo label {
       display: block;
@@ -408,8 +590,8 @@
     .form-campo input,
     .form-campo select {
       width: 100%;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(201,168,76,.25);
+      background: rgba(255,255,255,.66);
+      border: 1px solid rgba(var(--accent-rgb),.25);
       color: var(--cream);
       font-family: var(--font-serif); font-size: 1rem;
       padding: 16px 18px; outline: none;
@@ -418,7 +600,7 @@
     }
     .form-campo input:focus,
     .form-campo select:focus { border-color: var(--gold); }
-    .form-campo select option { background: var(--black); color: var(--cream); }
+    .form-campo select option { background: var(--black2); color: var(--cream); }
     .form-ayuda {
       font-family: var(--font-serif);
       color: var(--gray);
@@ -430,31 +612,33 @@
       display: none;
       font-family: var(--font-serif);
       font-size: .95rem;
-      line-height: 1.7;
+      line-height: 1.55;
       color: var(--gray);
       margin-top: 12px;
-      padding: 14px 16px;
-      border: 1px solid rgba(201,168,76,.18);
-      background: rgba(255,255,255,.025);
+      padding: 10px 0;
+      border-top: 1px solid rgba(var(--accent-rgb),.12);
+      background: transparent;
     }
     .guest-status.visible { display: block; }
     .guest-status strong { color: var(--cream); font-weight: 500; }
-    .guest-status.error { border-color: rgba(180,60,60,.35); color: #CFA0A0; }
+    .guest-status.error { border-color: rgba(var(--accent-rgb),.35); color: var(--gold); }
     .guest-matches {
       display: none;
       flex-direction: column;
-      gap: 10px;
+      gap: 0;
       margin-top: 12px;
+      border-top: 1px solid rgba(var(--accent-rgb),.14);
     }
     .guest-matches.visible { display: flex; }
     .guest-match {
       width: 100%;
       text-align: left;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(201,168,76,.22);
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid rgba(var(--accent-rgb),.14);
       color: var(--cream);
       cursor: pointer;
-      padding: 14px 16px;
+      padding: 13px 0;
       font-family: var(--font-serif);
       font-size: .98rem;
       line-height: 1.6;
@@ -462,8 +646,8 @@
     }
     .guest-match:hover,
     .guest-match:focus {
-      border-color: var(--gold);
-      background: rgba(201,168,76,.08);
+      border-color: rgba(var(--accent-rgb),.28);
+      background: transparent;
       outline: none;
     }
     .guest-match small {
@@ -473,14 +657,15 @@
       font-size: .52rem;
       letter-spacing: .24em;
       text-transform: uppercase;
-      margin-top: 6px;
+      margin-top: 5px;
     }
     .guest-selected {
       display: none;
       margin-top: 14px;
-      padding: 18px 18px;
-      border: 1px solid rgba(201,168,76,.34);
-      background: rgba(201,168,76,.06);
+      padding: 18px 0 4px;
+      border-top: 1px solid rgba(var(--accent-rgb),.22);
+      border-bottom: 1px solid rgba(var(--accent-rgb),.16);
+      background: transparent;
       text-align: left;
     }
     .guest-selected.visible { display: block; }
@@ -490,21 +675,69 @@
       letter-spacing: .3em;
       text-transform: uppercase;
       color: var(--gold);
-      margin-bottom: 10px;
-    }
-    .guest-selected ul {
-      list-style: none;
-      margin: 0 0 12px;
-      padding: 0;
-      color: var(--cream);
-      font-size: 1rem;
-      line-height: 1.7;
+      margin-bottom: 8px;
     }
     .guest-selected p {
       color: var(--gray);
       font-family: var(--font-serif);
-      font-size: .95rem;
-      line-height: 1.7;
+      font-size: .92rem;
+      line-height: 1.55;
+    }
+    .guest-selected p strong {
+      color: var(--cream);
+      font-weight: 500;
+    }
+    .attendance-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 14px;
+      border-top: 1px solid rgba(var(--accent-rgb),.12);
+    }
+    .attendance-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(var(--accent-rgb),.1);
+    }
+    .attendance-name {
+      color: var(--cream);
+      font-family: var(--font-serif);
+      font-size: .98rem;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .attendance-options {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .attendance-option {
+      min-width: 42px;
+      border: 1px solid rgba(var(--accent-rgb),.3);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--gold);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: .55rem;
+      letter-spacing: .12em;
+      line-height: 1;
+      text-transform: uppercase;
+      padding: 9px 11px;
+      transition: background .25s ease, border-color .25s ease, color .25s ease;
+    }
+    .attendance-option:last-child { border-right: 1px solid rgba(var(--accent-rgb),.3); }
+    .attendance-option.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #FFF9F4;
+    }
+    .attendance-summary {
+      margin-top: 12px;
+      padding-top: 0;
+      border-top: 0;
     }
 
     /* Flecha del select */
@@ -518,8 +751,8 @@
 
     /* Botón enviar */
     .btn-enviar {
-      width: 100%; background: transparent;
-      border: 1px solid var(--gold); color: var(--gold);
+      width: 100%; background: var(--gold);
+      border: 1px solid var(--gold); color: #FFF9F4;
       font-family: var(--font-sans);
       font-size: .65rem; letter-spacing: .3em;
       text-transform: uppercase;
@@ -537,14 +770,14 @@
     }
     .btn-enviar span { position: relative; z-index: 1; }
     .btn-enviar:hover::after { transform: translateY(0); }
-    .btn-enviar:hover { color: var(--black); }
+    .btn-enviar:hover { color: #FFF9F4; }
     .btn-enviar:disabled { opacity: .5; cursor: not-allowed; }
 
     /* Mensaje de éxito */
     #msg-exito {
       display: none; text-align: center;
       padding: 40px 20px;
-      border: 1px solid rgba(201,168,76,.3);
+      border: 1px solid rgba(var(--accent-rgb),.3);
       animation: aparecer .6s ease;
     }
     #msg-exito .exito-icono { font-size: 2.5rem; margin-bottom: 14px; display: block; }
@@ -561,18 +794,19 @@
        FOOTER
     ══════════════════════════════════════════════════════ */
     footer {
-      background: var(--black);
-      border-top: 1px solid rgba(201,168,76,.1);
+      background: var(--wine-dark);
+      border-top: 1px solid rgba(255,249,244,.12);
       padding: 56px 28px; text-align: center;
     }
+    footer .linea-oro { background: var(--champagne); }
     .footer-nombres {
       font-family: var(--font-script);
-      font-size: 2.8rem; color: var(--gold); margin-bottom: 6px;
+      font-size: 2.8rem; color: var(--champagne); margin-bottom: 6px;
     }
     .footer-meta {
       font-family: var(--font-sans);
       font-size: .55rem; letter-spacing: .35em;
-      text-transform: uppercase; color: var(--gray);
+      text-transform: uppercase; color: rgba(255,249,244,.68);
     }
 
     /* ══════════════════════════════════════════════════════
@@ -604,6 +838,52 @@
     /* ══════════════════════════════════════════════════════
        RESPONSIVE
     ══════════════════════════════════════════════════════ */
+    @media (max-width: 479px) {
+      .dresscode-grid { grid-template-columns: 1fr; }
+      .guest-selected { padding-top: 16px; }
+      .attendance-row { grid-template-columns: minmax(0, 1fr) auto; }
+    }
+    @media (max-width: 360px) {
+      .splash-pre,
+      .splash-fecha {
+        letter-spacing: .26em;
+      }
+      .splash-nombres {
+        font-size: 2.35rem;
+      }
+      .btn-abrir {
+        letter-spacing: .18em;
+        padding: 16px 24px;
+      }
+    }
+    @media (max-height: 640px) {
+      #splash {
+        justify-content: center;
+        padding-top: 24px;
+        padding-bottom: 24px;
+      }
+      #splash::after { display: none; }
+      .splash-shell {
+        transform: none;
+      }
+      .splash-monograma {
+        width: 42px; height: 42px;
+        margin-bottom: 16px;
+      }
+      .splash-nombres {
+        font-size: clamp(2.7rem, 12vw, 4.5rem);
+      }
+      .splash-linea {
+        margin: 14px auto;
+      }
+      .splash-fecha {
+        margin-bottom: 8px;
+      }
+      .splash-sub {
+        line-height: 1.5;
+        margin-bottom: 20px;
+      }
+    }
     @media (min-width: 480px) {
       .detalles-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -611,24 +891,38 @@
       .seccion   { padding: 100px 48px; }
       #frase     { padding: 90px 48px; }
       #dresscode { padding: 100px 48px; }
+      .momentos { padding: 0 48px 100px; }
+      .momentos-inner {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: end;
+      }
+      .momentos-texto {
+        grid-column: 1 / -1;
+        max-width: 520px;
+        margin: 0 auto;
+      }
     }
   </style>
 </head>
-<body>
+<body class="splash-activo">
 
   <!-- ═══════════════════════════════════════════════════════
        PANTALLA INICIAL
   ═══════════════════════════════════════════════════════ -->
   <div id="splash" role="dialog" aria-modal="true" aria-label="Invitación de boda">
-    <p class="splash-pre">Con todo nuestro amor, te invitamos</p>
-    <div class="splash-nombres">
-      Miguel<span class="splash-amp">&amp;</span>Daniela
+    <div class="splash-shell">
+      <div class="splash-monograma" aria-hidden="true">M · D</div>
+      <p class="splash-pre">Con todo nuestro amor</p>
+      <div class="splash-nombres">
+        Miguel<span class="splash-amp">&amp;</span>Daniela
+      </div>
+      <div class="splash-linea"></div>
+      <p class="splash-fecha">14 · Noviembre · 2026</p>
+      <p class="splash-sub">Nos encantaría que nos acompañes a celebrar este sí.</p>
+      <button class="btn-abrir" onclick="abrirInvitacion()" aria-label="Abrir invitación">
+        <span>✦ &nbsp;Abrir Invitación&nbsp; ✦</span>
+      </button>
     </div>
-    <div class="splash-linea"></div>
-    <p class="splash-fecha">14 · Noviembre · 2026</p>
-    <button class="btn-abrir" onclick="abrirInvitacion()">
-      <span>✦ &nbsp;Abrir Invitación&nbsp; ✦</span>
-    </button>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
@@ -667,6 +961,22 @@
       <div class="ornamento reveal delay-2" aria-hidden="true">✦ &nbsp; ✦ &nbsp; ✦</div>
       <p class="frase-firma reveal delay-3">― Miguel &amp; Daniela</p>
     </div>
+
+    <!-- ── MOMENTOS ─────────────────────────────────────── -->
+    <section class="momentos" aria-label="Momentos de Miguel y Daniela">
+      <div class="momentos-inner">
+        <figure class="momento-card propuesta reveal">
+          <img src="IMG_8456.jpg" alt="Detalle de la propuesta de matrimonio de Miguel y Daniela" loading="lazy">
+        </figure>
+        <figure class="momento-card anillo reveal delay-1">
+          <img src="IMG_8448.jpg" alt="Detalle del anillo de compromiso de Daniela" loading="lazy">
+        </figure>
+        <div class="momentos-texto reveal delay-2">
+          <p class="sec-label">El comienzo de este sí</p>
+          <p>Un día, una pregunta y una promesa que hoy queremos celebrar contigo.</p>
+        </div>
+      </div>
+    </section>
 
     <!-- ── CONTADOR REGRESIVO ───────────────────────────── -->
     <div class="seccion" id="contador">
@@ -709,7 +1019,7 @@
           <span class="detalle-icon" aria-hidden="true">🕟</span>
           <p class="detalle-label">Hora</p>
           <p class="detalle-valor grande">4:30 PM</p>
-          <p class="detalle-valor" style="font-size:.85rem;color:var(--gray);margin-top:4px;">Ceremonia</p>
+          <p class="detalle-valor" style="font-size:.85rem;color:var(--gray);margin-top:4px;">Ceremonia<br>Te recomendamos llegar a las 4:00 PM</p>
         </div>
         <div class="detalle-card reveal delay-2" style="grid-column: 1 / -1;">
           <span class="detalle-icon" aria-hidden="true">📍</span>
@@ -724,27 +1034,38 @@
         rel="noopener noreferrer"
         class="btn-maps reveal delay-3"
       >
-        📍 &nbsp; Cómo llegar
+        📍 Cómo llegar
       </a>
     </div>
 
     <!-- ── DRESS CODE & REGALOS ─────────────────────────── -->
     <div id="dresscode">
       <div class="inner">
-        <p class="sec-label reveal">Con cariño pedimos</p>
-        <h2 class="sec-titulo reveal">Dress Code &amp; Regalos</h2>
+        <p class="sec-label reveal">Guía para vestir</p>
+        <h2 class="sec-titulo reveal">Código de Vestimenta</h2>
         <div class="linea-oro reveal" aria-hidden="true"></div>
 
         <div class="dresscode-grid">
           <div class="dc-card reveal">
             <span class="dcicon" aria-hidden="true">👔</span>
-            <h3>Sugerido</h3>
-            <p>Semi formal<br><br>Vestidos elegantes, trajes, blusas formales</p>
+            <div class="dccopy">
+              <h3>Sugerido</h3>
+              <p><strong>Semi formal y fresco</strong>Prendas elegantes, ligeras y cómodas para clima cálido. La idea es verte muy bien y disfrutar sin pasar calor.</p>
+            </div>
           </div>
-          <div class="dc-card prohibido reveal delay-1">
+          <div class="dc-card reveal delay-1">
+            <span class="dcicon" aria-hidden="true">👠</span>
+            <div class="dccopy">
+              <h3>Calzado</h3>
+              <p><strong>Para caminar y bailar cómodo</strong>Si usas tacón, te recomendamos tacón ancho o calzado estable, ideal para césped o suelo irregular.</p>
+            </div>
+          </div>
+          <div class="dc-card prohibido full reveal delay-2">
             <span class="dcicon" aria-hidden="true">🚫</span>
-            <h3>Por favor evitar</h3>
-            <p>Jeans u outfit casual<br><br>Ayúdanos a mantener la elegancia del día</p>
+            <div class="dccopy">
+              <h3>Reservado para los novios</h3>
+              <p><strong>Blanco para la novia, vinotinto para el novio</strong>Por favor evita jeans, looks casuales, blanco, vinotinto, beige y tonos crudos muy claros.</p>
+            </div>
           </div>
         </div>
 
@@ -752,9 +1073,9 @@
           <span class="detalle-icon" aria-hidden="true">💌</span>
           <p class="detalle-label" style="margin-bottom:12px;">Regalos</p>
           <p>
-            Tu presencia es el mejor regalo que nos puedes dar.<br>
-            Si deseas obsequiarnos algo,
-            <strong>lluvia de sobres</strong> será siempre bienvenida con mucho amor.
+            Tu compañía ya es un regalo enorme para nosotros.<br>
+            Si deseas tener un detalle,
+            <strong>lluvia de sobres</strong> será recibida con mucho amor.
           </p>
         </div>
       </div>
@@ -767,7 +1088,7 @@
       <div class="linea-oro reveal" aria-hidden="true"></div>
       <p class="reveal" style="font-family:var(--font-serif);color:var(--gray);line-height:1.8;margin-bottom:4px;">
         Por favor confirma antes del
-        <strong style="color:var(--cream);">5 de noviembre de 2026</strong>
+        <strong style="color:var(--cream);">01 de noviembre de 2026</strong>
       </p>
 
       <!-- FORMULARIO -->
@@ -792,17 +1113,11 @@
         <input type="hidden" id="nombre_buscado" name="nombre_buscado">
         <input type="hidden" id="nombre" name="nombre">
         <input type="hidden" id="invitados" name="invitados">
-
-        <div class="form-campo">
-          <label for="asistencia">¿Asistirás?</label>
-          <div class="select-wrap">
-            <select id="asistencia" name="asistencia" required>
-              <option value="" disabled selected>Selecciona...</option>
-              <option value="Sí">✓  Sí, ahí estaré con mucho gusto</option>
-              <option value="No">✗  Lamentablemente no podré asistir</option>
-            </select>
-          </div>
-        </div>
+        <input type="hidden" id="asistencia" name="asistencia">
+        <input type="hidden" id="confirmaciones_invitados" name="confirmaciones_invitados">
+        <input type="hidden" id="asistentes_confirmados" name="asistentes_confirmados">
+        <input type="hidden" id="no_asisten" name="no_asisten">
+        <input type="hidden" id="total_confirmados" name="total_confirmados">
 
         <button type="submit" class="btn-enviar" id="btn-enviar">
           <span id="txt-btn">✦ &nbsp;Confirmar Asistencia&nbsp; ✦</span>
@@ -811,9 +1126,9 @@
 
       <!-- Mensaje de éxito -->
       <div id="msg-exito" role="alert">
-        <span class="exito-icono" aria-hidden="true">💛</span>
+        <span class="exito-icono" aria-hidden="true">🤍</span>
         <h3>¡Gracias!</h3>
-        <p>Tu respuesta fue registrada con éxito.<br>¡Nos vemos el 14 de noviembre! 🥂</p>
+        <p>Tu respuesta fue registrada con éxito.<br>Nos vemos el 14 de noviembre.</p>
       </div>
     </div>
 
@@ -873,12 +1188,15 @@
     let selectedGuestGroup = null;
     let lastSearchedName = '';
     let guestSearchReady = false;
+    let selectedGuestAttendance = {};
 
     /* ================================================================
        ABRIR INVITACIÓN
        Se ejecuta cuando el usuario hace clic en "Abrir Invitación"
     ================================================================ */
     function abrirInvitacion() {
+      document.body.classList.remove('splash-activo');
+
       // 1. Ocultar splash con fade
       document.getElementById('splash').classList.add('oculto');
 
@@ -951,6 +1269,7 @@
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
+        .replace(/[^a-z0-9ñ\s]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
     }
@@ -982,7 +1301,7 @@
         setGuestStatus('Buscando tu invitación...');
 
         try {
-          const matches = await searchGuestGroup(query);
+          const matches = filterGuestMatches(await searchGuestGroup(query), query);
           renderGuestMatches(matches, query);
         } catch (err) {
           console.error('Error buscando invitado:', err);
@@ -1044,6 +1363,128 @@
       });
     }
 
+    function filterGuestMatches(matches, query) {
+      const normalizedQuery = normalizeText(query);
+      const queryTokens = tokenize(normalizedQuery);
+      if (!queryTokens.length) return [];
+
+      return (matches || [])
+        .map(group => {
+          const match = scoreGuestGroupClient(group, normalizedQuery, queryTokens);
+          return {
+            ...group,
+            score: match.score,
+            matchReason: match.matchReason
+          };
+        })
+        .filter(group => group.score >= 70)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+    }
+
+    function scoreGuestGroupClient(group, normalizedQuery, queryTokens) {
+      const names = Array.isArray(group.names) ? group.names : [];
+      return names
+        .map(name => scoreSingleGuestName(normalizeText(name), normalizedQuery, queryTokens))
+        .sort((a, b) => b.score - a.score)[0] || noGuestMatch();
+    }
+
+    function scoreSingleGuestName(normalizedName, normalizedQuery, queryTokens) {
+      const nameTokens = tokenize(normalizedName);
+
+      if (normalizedName.includes(normalizedQuery)) {
+        return { score: 100, matchReason: 'phrase_exact_same_guest' };
+      }
+
+      if (queryTokens.length >= 2) {
+        if (queryTokens.every(token => tokenMatchesExact(token, nameTokens))) {
+          return { score: 90, matchReason: 'all_tokens_same_guest' };
+        }
+
+        if (queryTokens.every(token => tokenMatchesPrefix(token, nameTokens))) {
+          return { score: 80, matchReason: 'all_tokens_prefix_same_guest' };
+        }
+
+        if (queryTokens.every(token => tokenMatchesFuzzy(token, nameTokens))) {
+          return { score: 70, matchReason: 'all_tokens_fuzzy_same_guest' };
+        }
+
+        return noGuestMatch();
+      }
+
+      const token = queryTokens[0];
+
+      if (nameTokens.some(nameToken => nameToken === token)) {
+        return { score: 95, matchReason: 'single_token_exact' };
+      }
+
+      if (nameTokens.some(nameToken => nameToken.startsWith(token))) {
+        return { score: 85, matchReason: 'single_token_prefix' };
+      }
+
+      if (token.length >= 5 && nameTokens.some(nameToken => nameToken.includes(token))) {
+        return { score: 78, matchReason: 'single_token_partial' };
+      }
+
+      if (tokenMatchesFuzzy(token, nameTokens)) {
+        return { score: 70, matchReason: 'single_token_fuzzy' };
+      }
+
+      return noGuestMatch();
+    }
+
+    function tokenize(text) {
+      return normalizeText(text).split(' ').filter(token => token.length >= 2);
+    }
+
+    function tokenMatchesExact(token, nameTokens) {
+      return nameTokens.some(nameToken => nameToken === token);
+    }
+
+    function tokenMatchesPrefix(token, nameTokens) {
+      return nameTokens.some(nameToken => nameToken.startsWith(token));
+    }
+
+    function tokenMatchesFuzzy(token, nameTokens) {
+      return token.length >= 5 && nameTokens.some(nameToken => isSmallTypo(token, nameToken));
+    }
+
+    function isSmallTypo(queryToken, nameToken) {
+      if (queryToken.length < 5) return false;
+      if (queryToken.charAt(0) !== nameToken.charAt(0)) return false;
+      if (Math.abs(queryToken.length - nameToken.length) > 2) return false;
+
+      const maxDistance = queryToken.length <= 6 ? 1 : 2;
+      return levenshteinDistance(queryToken, nameToken) <= maxDistance;
+    }
+
+    function levenshteinDistance(a, b) {
+      const matrix = [];
+
+      for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+      for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+
+      return matrix[b.length][a.length];
+    }
+
+    function noGuestMatch() {
+      return { score: 0, matchReason: 'no_match' };
+    }
+
     function renderGuestMatches(matches, searchedName) {
       const list = document.getElementById('guest-matches');
       if (!list) return;
@@ -1078,6 +1519,7 @@
 
     function selectGuestGroup(group, searchedName) {
       selectedGuestGroup = group;
+      selectedGuestAttendance = {};
       lastSearchedName = searchedName || document.getElementById('buscar-invitado').value.trim();
       fillHiddenRSVPFields(group, lastSearchedName);
 
@@ -1085,7 +1527,7 @@
       if (nombre) nombre.value = lastSearchedName;
 
       const invitados = document.getElementById('invitados');
-      if (invitados) invitados.value = String(group.quantity);
+      if (invitados) invitados.value = '';
 
       const selected = document.getElementById('guest-selected');
       const matches = document.getElementById('guest-matches');
@@ -1094,10 +1536,27 @@
 
       selected.innerHTML = `
         <h3>Encontramos tu invitación</h3>
-        <ul>${group.names.map(name => `<li>${escapeHTML(name)}</li>`).join('')}</ul>
-        <p><strong>Cupos asignados: ${escapeHTML(group.quantity)}</strong><br>Ahora puedes continuar con tu confirmación.</p>
+        <p><strong>${escapeHTML(group.quantity)} cupos asignados.</strong> Confirma quiénes nos acompañan.</p>
+        <div class="attendance-list">
+          ${group.names.map((name, index) => `
+            <div class="attendance-row" data-attendance-row="${index}">
+              <span class="attendance-name">${escapeHTML(name)}</span>
+              <span class="attendance-options" aria-label="Confirmación de ${escapeHTML(name)}">
+                <button type="button" class="attendance-option" data-attendance-index="${index}" data-attendance-value="Sí" aria-pressed="false">Sí</button>
+                <button type="button" class="attendance-option" data-attendance-index="${index}" data-attendance-value="No" aria-pressed="false">No</button>
+              </span>
+            </div>
+          `).join('')}
+        </div>
+        <p class="attendance-summary" id="attendance-summary">Selecciona la asistencia de cada invitado para continuar.</p>
       `;
       selected.classList.add('visible');
+      selected.querySelectorAll('.attendance-option').forEach(button => {
+        button.addEventListener('click', () => {
+          setGuestAttendance(button.dataset.attendanceIndex, button.dataset.attendanceValue);
+        });
+      });
+      updateAttendanceHiddenFields();
     }
 
     function fillHiddenRSVPFields(group, searchedName) {
@@ -1107,9 +1566,65 @@
       document.getElementById('nombre_buscado').value = searchedName || '';
     }
 
+    function setGuestAttendance(index, value) {
+      selectedGuestAttendance[index] = value;
+
+      document
+        .querySelectorAll(`[data-attendance-index="${index}"]`)
+        .forEach(button => {
+          const active = button.dataset.attendanceValue === value;
+          button.classList.toggle('active', active);
+          button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
+      updateAttendanceHiddenFields();
+    }
+
+    function updateAttendanceHiddenFields() {
+      const names = selectedGuestGroup && Array.isArray(selectedGuestGroup.names)
+        ? selectedGuestGroup.names
+        : [];
+      const confirmations = names.map((name, index) => ({
+        nombre: name,
+        asistencia: selectedGuestAttendance[index] || ''
+      }));
+      const complete = confirmations.length > 0 && confirmations.every(item => item.asistencia);
+      const yesNames = confirmations.filter(item => item.asistencia === 'Sí').map(item => item.nombre);
+      const noNames = confirmations.filter(item => item.asistencia === 'No').map(item => item.nombre);
+
+      document.getElementById('confirmaciones_invitados').value = JSON.stringify(confirmations);
+      document.getElementById('asistentes_confirmados').value = yesNames.join('\n');
+      document.getElementById('no_asisten').value = noNames.join('\n');
+      document.getElementById('total_confirmados').value = complete ? String(yesNames.length) : '';
+      document.getElementById('invitados').value = complete ? String(yesNames.length) : '';
+      document.getElementById('asistencia').value = complete
+        ? (yesNames.length === names.length ? 'Sí' : yesNames.length === 0 ? 'No' : 'Parcial')
+        : '';
+
+      const summary = document.getElementById('attendance-summary');
+      if (!summary) return;
+
+      if (!complete) {
+        const pending = confirmations.filter(item => !item.asistencia).length;
+        summary.textContent = `Falta confirmar ${pending} ${pending === 1 ? 'persona' : 'personas'}.`;
+        return;
+      }
+
+      summary.textContent = `${yesNames.length} de ${names.length} ${yesNames.length === 1 ? 'persona asistirá' : 'personas asistirán'}.`;
+    }
+
+    function isAttendanceComplete() {
+      const names = selectedGuestGroup && Array.isArray(selectedGuestGroup.names)
+        ? selectedGuestGroup.names
+        : [];
+
+      return names.length > 0 && names.every((_, index) => selectedGuestAttendance[index]);
+    }
+
     function clearGuestSelection(showMessage = true) {
       selectedGuestGroup = null;
-      ['grupo_id','nombres_invitados','cantidad_invitados','nombre_buscado','nombre','invitados'].forEach(id => {
+      selectedGuestAttendance = {};
+      ['grupo_id','nombres_invitados','cantidad_invitados','nombre_buscado','nombre','invitados','asistencia','confirmaciones_invitados','asistentes_confirmados','no_asisten','total_confirmados'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
@@ -1170,14 +1685,22 @@
       const nombresInvitados = document.getElementById('nombres_invitados').value;
       const cantidadInvitados = document.getElementById('cantidad_invitados').value;
       const nombreBuscado = document.getElementById('nombre_buscado').value;
+      const confirmacionesInvitados = document.getElementById('confirmaciones_invitados').value;
+      const asistentesConfirmados = document.getElementById('asistentes_confirmados').value;
+      const noAsisten = document.getElementById('no_asisten').value;
+      const totalConfirmados = document.getElementById('total_confirmados').value;
 
       if (!selectedGuestGroup || !grupoId) {
         setGuestStatus('Primero busca tu nombre y selecciona tu invitación para confirmar asistencia.', true);
         document.getElementById('buscar-invitado').focus();
         return;
       }
-      if (!nombre || !invitados || !asistencia) {
-        setGuestStatus('Selecciona tu invitación y confirma si podrás asistir.', true);
+      if (!isAttendanceComplete()) {
+        setGuestStatus('Confirma con Sí o No para cada persona de tu invitación.', true);
+        return;
+      }
+      if (!nombre || !asistencia) {
+        setGuestStatus('Selecciona tu invitación y completa la confirmación.', true);
         return;
       }
 
@@ -1204,7 +1727,11 @@
             nombres_invitados: nombresInvitados,
             cantidad_invitados: cantidadInvitados,
             nombre_buscado: nombreBuscado,
-            confirmacion: asistencia
+            confirmacion: asistencia,
+            confirmaciones_invitados: confirmacionesInvitados,
+            asistentes_confirmados: asistentesConfirmados,
+            no_asisten: noAsisten,
+            total_confirmados: totalConfirmados
           })
         });
 
