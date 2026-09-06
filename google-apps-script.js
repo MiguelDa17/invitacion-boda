@@ -59,9 +59,12 @@ function doGet(e) {
   const params = (e && e.parameter) || {};
 
   if (params.action === 'searchGuest') {
+    const searchResult = searchGuestGroupsResult(params.q || '');
     const payload = {
       ok: true,
-      matches: searchGuestGroups(params.q || '')
+      matches: searchResult.matches,
+      closedMatches: searchResult.closedMatches,
+      allMatchesClosed: searchResult.allMatchesClosed
     };
 
     return outputJSON(payload, params.callback);
@@ -121,12 +124,19 @@ function validateRsvpWorkbook() {
 }
 
 function searchGuestGroups(query) {
+  return searchGuestGroupsResult(query).matches;
+}
+
+function searchGuestGroupsResult(query) {
   const normalizedQuery = normalizeText(query);
-  if (normalizedQuery.length < 3) return [];
+  if (normalizedQuery.length < 3) {
+    return { matches: [], closedMatches: 0, allMatchesClosed: false };
+  }
 
   const queryTokens = tokenize(normalizedQuery);
+  const closedGroupIds = getClosedResponseGroupIds();
 
-  return getGuestGroups()
+  const scoredMatches = getGuestGroups()
     .filter(group => group && (!group.status || normalizeText(group.status) === 'activo'))
     .map(group => {
       const match = scoreGuestGroup(group, normalizedQuery, queryTokens);
@@ -143,9 +153,34 @@ function searchGuestGroups(query) {
       };
     })
     .filter(result => result.score >= 70)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map(result => result.group);
+    .sort((a, b) => b.score - a.score);
+  const openMatches = scoredMatches.filter(result => !closedGroupIds[result.group.grupoId]);
+  const closedMatches = scoredMatches.length - openMatches.length;
+
+  return {
+    matches: openMatches
+      .slice(0, 5)
+      .map(result => result.group),
+    closedMatches: closedMatches,
+    allMatchesClosed: scoredMatches.length > 0 && openMatches.length === 0
+  };
+}
+
+function getClosedResponseGroupIds() {
+  const latestResponses = getLatestResponsesByGroup();
+  const closed = {};
+
+  Object.keys(latestResponses).forEach(groupId => {
+    const responseRecord = buildResponseRecord(latestResponses[groupId]);
+    const answered = Number(responseRecord.cantidad_asisten || 0) + Number(responseRecord.cantidad_no_asisten || 0);
+    const pending = Number(responseRecord.cantidad_pendientes || 0);
+
+    if (answered > 0 && pending === 0) {
+      closed[groupId] = true;
+    }
+  });
+
+  return closed;
 }
 
 function getGuestGroups() {

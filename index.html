@@ -1301,7 +1301,12 @@
         setGuestStatus('Buscando tu invitación...');
 
         try {
-          const matches = filterGuestMatches(await searchGuestGroup(query), query);
+          const searchResult = await searchGuestGroup(query);
+          const matches = filterGuestMatches(searchResult.matches, query);
+          if (!matches.length && searchResult.allMatchesClosed) {
+            setGuestStatus('Esta invitación ya fue confirmada. Si necesitas hacer algún cambio, comunícate con los novios.');
+            return;
+          }
           renderGuestMatches(matches, query);
         } catch (err) {
           console.error('Error buscando invitado:', err);
@@ -1312,7 +1317,7 @@
 
     async function searchGuestGroup(query) {
       try {
-        return await searchGuestGroupJSONP(query);
+        return normalizeGuestSearchResult(await searchGuestGroupJSONP(query));
       } catch (jsonpErr) {
         console.warn('JSONP no disponible, intentando fetch:', jsonpErr);
       }
@@ -1325,7 +1330,7 @@
       const response = await fetch(`${SCRIPT_URL}?${params.toString()}`);
       if (!response.ok) throw new Error('Respuesta no válida');
       const data = await response.json();
-      return Array.isArray(data.matches) ? data.matches : [];
+      return normalizeGuestSearchResult(data);
     }
 
     function searchGuestGroupJSONP(query) {
@@ -1345,7 +1350,7 @@
 
         window[callbackName] = (data) => {
           cleanup();
-          resolve(Array.isArray(data && data.matches) ? data.matches : []);
+          resolve(data);
         };
 
         const params = new URLSearchParams({
@@ -1361,6 +1366,18 @@
         };
         document.body.appendChild(script);
       });
+    }
+
+    function normalizeGuestSearchResult(data) {
+      if (Array.isArray(data)) {
+        return { matches: data, closedMatches: 0, allMatchesClosed: false };
+      }
+
+      return {
+        matches: Array.isArray(data && data.matches) ? data.matches : [],
+        closedMatches: Number((data && data.closedMatches) || 0),
+        allMatchesClosed: Boolean(data && data.allMatchesClosed)
+      };
     }
 
     function filterGuestMatches(matches, query) {
