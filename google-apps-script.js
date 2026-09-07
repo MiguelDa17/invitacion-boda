@@ -131,18 +131,15 @@ function saveRsvpResponse(data) {
 }
 
 function setupRsvpWorkbook() {
-  prepareResponsesSheet();
-  refreshRsvpSummary();
+  repairLegacyRsvpResponses();
 }
 
 function validateRsvpWorkbook() {
   const guestsSheet = getGuestsSpreadsheet().getSheetByName(GUESTS_SHEET_NAME);
   if (!guestsSheet) throw new Error('No existe la pestaña de invitados ' + GUESTS_SHEET_NAME);
 
-  prepareResponsesSheet();
-
   const groups = getGuestGroups();
-  refreshRsvpSummary();
+  const totals = repairLegacyRsvpResponses();
 
   Logger.log('Validación OK');
   Logger.log('Grupos de invitados: ' + groups.length);
@@ -150,6 +147,37 @@ function validateRsvpWorkbook() {
   Logger.log('Resumen organizado: ' + SUMMARY_SHEET_NAME);
   Logger.log('Pestañas de seguimiento: ' + CONFIRMED_SHEET_NAME + ', ' + DECLINED_SHEET_NAME + ', ' + PENDING_SHEET_NAME);
   Logger.log('Totales: ' + TOTALS_SHEET_NAME);
+  Logger.log('Personas que van: ' + totals.personasQueVan);
+  Logger.log('Personas que no van: ' + totals.personasQueNoVan);
+  Logger.log('Personas pendientes: ' + totals.personasPendientes);
+}
+
+function repairLegacyRsvpResponses() {
+  const sheet = getOrCreateSheet(RESPONSES_SHEET_NAME);
+  normalizeLegacyResponseSheet(sheet);
+  ensureHeaders(sheet, RESPONSE_HEADERS);
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(String);
+  const records = values.slice(1)
+    .map(row => rowToRecord(headers, row))
+    .filter(hasMeaningfulHistoricRecord)
+    .map(record => buildResponseRecord(record));
+
+  rewriteSheetWithRecords(sheet, RESPONSE_HEADERS, records, { tabColor: '#6E1F2C' });
+  const totals = refreshRsvpSummary();
+
+  Logger.log('Histórico RSVP reparado');
+  Logger.log('Filas históricas conservadas: ' + records.length);
+  Logger.log('Personas que van: ' + totals.personasQueVan);
+  Logger.log('Personas que no van: ' + totals.personasQueNoVan);
+  Logger.log('Personas pendientes: ' + totals.personasPendientes);
+
+  return totals;
+}
+
+function actualizarRsvpHistorico() {
+  return repairLegacyRsvpResponses();
 }
 
 function searchGuestGroups(query) {
@@ -264,12 +292,21 @@ function buildGuestGroup(row, indexes, sheetRowNumber) {
 }
 
 function buildResponseRecord(data) {
-  const invitedNames = splitNames(data.nombres_invitados || data.nombre);
+  const officialGroup = getOfficialGroupForRecord(data);
+  const invitedNames = officialGroup
+    ? officialGroup.names
+    : splitNames(data.nombres_invitados || data.nombre);
   const quantity = toPositiveNumber(
-    data.cantidad_invitados || data.invitados,
+    officialGroup ? officialGroup.quantity : data.cantidad_invitados || data.invitados,
     invitedNames.length
   );
-  const confirmations = parseGuestConfirmations(data.confirmaciones_invitados);
+  const groupId = officialGroup ? officialGroup.grupoId : data.grupo_id || '';
+  const normalizedData = Object.assign({}, data, {
+    grupo_id: groupId,
+    nombres_invitados: invitedNames.join('\n'),
+    cantidad_invitados: quantity
+  });
+  const confirmations = getRecordConfirmations(normalizedData);
 
   let yesNames = splitNames(data.asistentes_confirmados);
   let noNames = splitNames(data.no_asisten);
@@ -283,12 +320,6 @@ function buildResponseRecord(data) {
       .filter(item => item.asistencia === 'No')
       .map(item => item.nombre)
       .filter(Boolean);
-  }
-
-  if (!confirmations.length && !yesNames.length && !noNames.length) {
-    const attendance = normalizeAttendance(data.asistencia || data.confirmacion);
-    if (attendance === 'Sí') yesNames = invitedNames.slice();
-    if (attendance === 'No') noNames = invitedNames.slice();
   }
 
   yesNames = uniqueNames(yesNames);
@@ -307,18 +338,17 @@ function buildResponseRecord(data) {
 
   const computedPendingCount = Math.max(0, quantity - yesCount - noCount);
   const pendingCount = pendingNames.length || computedPendingCount;
-  const groupStatus = data.estado_grupo || getGroupStatus(quantity, yesCount, noCount, pendingCount);
-  const attendance = data.asistencia || data.confirmacion || getAttendanceStatus(quantity, yesCount, noCount, pendingCount);
-  const serializedConfirmations = data.confirmaciones_invitados || JSON.stringify(
-    invitedNames.map(name => ({
-      nombre: name,
-      asistencia: yesNames.indexOf(name) >= 0 ? 'Sí' : noNames.indexOf(name) >= 0 ? 'No' : ''
-    }))
+  const groupStatus = getGroupStatus(quantity, yesCount, noCount, pendingCount);
+  const attendance = getAttendanceStatus(quantity, yesCount, noCount, pendingCount);
+  const serializedConfirmations = JSON.stringify(
+    yesNames
+      .map(name => ({ nombre: name, asistencia: 'Sí' }))
+      .concat(noNames.map(name => ({ nombre: name, asistencia: 'No' })))
   );
 
   return {
     fecha_respuesta: data.fecha_respuesta || new Date(),
-    grupo_id: data.grupo_id || '',
+    grupo_id: groupId,
     nombres_invitados: invitedNames.join('\n'),
     cantidad_invitados: quantity,
     nombre_buscado: data.nombre_buscado || '',
@@ -740,26 +770,204 @@ function updateResponseState(states, record) {
 }
 
 function getRecordConfirmations(record) {
-  const confirmations = parseGuestConfirmations(record.confirmaciones_invitados);
+  const officialGroup = getOfficialGroupForRecord(record);
+  const invitedNames = officialGroup
+    ? officialGroup.names
+    : splitNames(record.nombres_invitados || record.nombre);
+  const quantity = toPositiveNumber(
+    officialGroup ? officialGroup.quantity : record.cantidad_invitados || record.invitados,
+    invitedNames.length
+  );
+  const confirmations = normalizeConfirmations(
+    parseGuestConfirmations(record.confirmaciones_invitados),
+    invitedNames
+  );
   if (confirmations.length) return confirmations;
 
   const yesNames = splitNames(record.asistentes_confirmados)
     .map(name => ({ nombre: name, asistencia: 'Sí' }));
   const noNames = splitNames(record.no_asisten)
     .map(name => ({ nombre: name, asistencia: 'No' }));
-  const explicitNames = yesNames.concat(noNames);
+  const explicitNames = normalizeConfirmations(yesNames.concat(noNames), invitedNames);
   if (explicitNames.length) return explicitNames;
 
-  const attendance = normalizeAttendance(record.asistencia || record.confirmacion);
-  if (!attendance) return [];
-
-  return splitNames(record.nombres_invitados || record.nombre)
-    .map(name => ({ nombre: name, asistencia: attendance }));
+  return inferLegacyConfirmations(record, invitedNames, quantity);
 }
 
 function matchKnownGuestName(name, invitedNames) {
   const normalizedName = normalizeText(name);
   return invitedNames.find(invitedName => normalizeText(invitedName) === normalizedName) || '';
+}
+
+function normalizeConfirmations(confirmations, invitedNames) {
+  const seen = {};
+
+  return (confirmations || [])
+    .map(item => {
+      const matchedName = matchKnownGuestName(item.nombre, invitedNames) || item.nombre;
+
+      return {
+        nombre: matchedName,
+        asistencia: normalizeAttendance(item.asistencia)
+      };
+    })
+    .filter(item => item.nombre && item.asistencia)
+    .filter(item => {
+      const key = normalizeText(item.nombre);
+      if (!key || seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+}
+
+function inferLegacyConfirmations(record, invitedNames, quantity) {
+  if (!invitedNames.length) return [];
+
+  const status = normalizeRsvpStatus(record.asistencia || record.confirmacion);
+  if (!status) return [];
+
+  const matchedNames = matchLegacyNamedGuests(record, invitedNames);
+  const attendingCount = getLegacyAttendingCount(record, quantity);
+
+  if (status === 'Sí') {
+    if (isWholeGroupLegacyYes(attendingCount, quantity, invitedNames)) {
+      return buildConfirmationItems(invitedNames, 'Sí');
+    }
+
+    if (matchedNames.length) {
+      return buildConfirmationItems(limitMatchedNames(matchedNames, attendingCount), 'Sí');
+    }
+
+    return [];
+  }
+
+  if (status === 'No') {
+    if (quantity <= 1 || invitedNames.length === 1 || !matchedNames.length) {
+      return buildConfirmationItems(invitedNames, 'No');
+    }
+
+    return buildConfirmationItems(matchedNames, 'No');
+  }
+
+  if (status === 'Parcial') {
+    if (matchedNames.length) {
+      return buildConfirmationItems(limitMatchedNames(matchedNames, attendingCount), 'Sí');
+    }
+  }
+
+  return [];
+}
+
+function getOfficialGroupForRecord(record) {
+  const groups = getGuestGroups();
+  const groupId = String(record.grupo_id || '').trim();
+
+  if (groupId) {
+    const exactGroup = groups.find(group => group.grupoId === groupId);
+    if (exactGroup) return exactGroup;
+  }
+
+  const names = splitNames(record.nombres_invitados);
+  if (names.length) {
+    const normalizedNames = normalizeText(names.join('\n'));
+    const byNames = groups.find(group => normalizeText(group.names.join('\n')) === normalizedNames);
+    if (byNames) return byNames;
+  }
+
+  const sources = getLegacyNameSources(record);
+  const candidates = [];
+
+  sources.forEach(source => {
+    const normalizedSource = normalizeText(source);
+    const tokens = tokenize(normalizedSource);
+    if (!tokens.length) return;
+
+    groups.forEach(group => {
+      const match = scoreNames(group.names, normalizedSource, tokens);
+      if (match.score >= 90) {
+        candidates.push({
+          group: group,
+          score: match.score
+        });
+      }
+    });
+  });
+
+  candidates.sort((a, b) => b.score - a.score);
+  if (!candidates.length) return null;
+
+  const best = candidates[0];
+  const sameBest = candidates.filter(candidate => candidate.score === best.score);
+  return sameBest.length === 1 ? best.group : null;
+}
+
+function matchLegacyNamedGuests(record, invitedNames) {
+  const candidates = [];
+
+  getLegacyNameSources(record).forEach(source => {
+    const normalizedSource = normalizeText(source);
+    const tokens = tokenize(normalizedSource);
+    if (!tokens.length) return;
+
+    invitedNames.forEach(name => {
+      const match = scoreSingleName(normalizeText(name), normalizedSource, tokens);
+      if (match.score >= 70) {
+        candidates.push({
+          name: name,
+          score: match.score
+        });
+      }
+    });
+  });
+
+  candidates.sort((a, b) => b.score - a.score);
+
+  return uniqueNames(candidates.map(candidate => candidate.name));
+}
+
+function getLegacyNameSources(record) {
+  return [
+    record.nombre,
+    record.nombre_buscado,
+    record.asistentes_confirmados,
+    record.no_asisten
+  ]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+}
+
+function getLegacyAttendingCount(record, quantity) {
+  const values = [
+    record.total_confirmados,
+    record.cantidad_asisten,
+    record.invitados
+  ];
+
+  for (let index = 0; index < values.length; index++) {
+    const count = Number(values[index]);
+    if (count > 0) return count;
+  }
+
+  return quantity === 1 ? 1 : 0;
+}
+
+function isWholeGroupLegacyYes(attendingCount, quantity, invitedNames) {
+  if (quantity <= 1 || invitedNames.length === 1) return true;
+  if (attendingCount >= quantity) return true;
+  if (quantity <= invitedNames.length && attendingCount >= invitedNames.length) return true;
+  return false;
+}
+
+function limitMatchedNames(names, expectedCount) {
+  if (!expectedCount || expectedCount >= names.length) return names;
+  return names.slice(0, expectedCount);
+}
+
+function buildConfirmationItems(names, asistencia) {
+  return uniqueNames(names).map(name => ({
+    nombre: name,
+    asistencia: asistencia
+  }));
 }
 
 function prepareResponsesSheet() {
@@ -983,6 +1191,16 @@ function normalizeAttendance(value) {
   if (['no', 'no asiste', 'rechazado', 'rechazada'].indexOf(normalized) >= 0) {
     return 'No';
   }
+
+  return '';
+}
+
+function normalizeRsvpStatus(value) {
+  const attendance = normalizeAttendance(value);
+  if (attendance) return attendance;
+
+  const normalized = normalizeText(value);
+  if (['parcial', 'partial'].indexOf(normalized) >= 0) return 'Parcial';
 
   return '';
 }
