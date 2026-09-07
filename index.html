@@ -1200,6 +1200,7 @@
      *  5. Copia la URL generada y pégala aquí abajo:
      */
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwS2q8JUl46LbbAhMKqiPqkYff9N5ks2D8788WWcrdXx6YuoTt33kIOoi64gd283CvH/exec';
+    const RSVP_SEARCH_VERSION = '2026-09-06-rsvp-person-status-v3';
     let selectedGuestGroup = null;
     let lastSearchedName = '';
     let guestSearchReady = false;
@@ -1318,6 +1319,11 @@
 
         try {
           const searchResult = await searchGuestGroup(query);
+          if (searchResult.outdated) {
+            setGuestStatus('Estamos actualizando la confirmación. Intenta de nuevo en unos minutos o comunícate con los novios.', true);
+            return;
+          }
+
           const matches = filterGuestMatches(searchResult.matches, query);
           if (!matches.length && searchResult.allMatchesClosed) {
             setGuestStatus('Esta persona ya tiene respuesta registrada. Si necesitas hacer algún cambio, comunícate con los novios.');
@@ -1386,14 +1392,29 @@
 
     function normalizeGuestSearchResult(data) {
       if (Array.isArray(data)) {
-        return { matches: data, closedMatches: 0, allMatchesClosed: false };
+        return { matches: [], closedMatches: 0, allMatchesClosed: false, outdated: data.length > 0 };
       }
 
+      const matches = Array.isArray(data && data.matches) ? data.matches : [];
+      const hasLegacyMatches = matches.some(group => !hasGuestStatusMetadata(group));
+
       return {
-        matches: Array.isArray(data && data.matches) ? data.matches : [],
+        matches: hasLegacyMatches ? [] : matches,
         closedMatches: Number((data && data.closedMatches) || 0),
-        allMatchesClosed: Boolean(data && data.allMatchesClosed)
+        allMatchesClosed: Boolean(data && data.allMatchesClosed),
+        outdated: Boolean(
+          hasLegacyMatches ||
+          (matches.length > 0 && data && data.version !== RSVP_SEARCH_VERSION)
+        )
       };
+    }
+
+    function hasGuestStatusMetadata(group) {
+      return Boolean(
+        group &&
+        Array.isArray(group.guestStatuses) &&
+        Array.isArray(group.pendingNames)
+      );
     }
 
     function filterGuestMatches(matches, query) {
@@ -1416,7 +1437,7 @@
     }
 
     function scoreGuestGroupClient(group, normalizedQuery, queryTokens) {
-      const names = Array.isArray(group.names) ? group.names : [];
+      const names = Array.isArray(group.pendingNames) ? group.pendingNames : [];
       return names
         .map(name => scoreSingleGuestName(normalizeText(name), normalizedQuery, queryTokens))
         .sort((a, b) => b.score - a.score)[0] || noGuestMatch();

@@ -8,6 +8,7 @@ const CONFIRMED_SHEET_NAME = 'Confirmados';
 const DECLINED_SHEET_NAME = 'No asisten';
 const PENDING_SHEET_NAME = 'Pendientes';
 const TOTALS_SHEET_NAME = 'Totales RSVP';
+const RSVP_APP_VERSION = '2026-09-06-rsvp-person-status-v3';
 
 const RESPONSE_HEADERS = [
   'fecha_respuesta',
@@ -58,10 +59,22 @@ const STATUS_HEADERS = [
 function doGet(e) {
   const params = (e && e.parameter) || {};
 
+  if (params.action === 'health') {
+    return outputJSON({
+      ok: true,
+      version: RSVP_APP_VERSION,
+      guestsSpreadsheetId: GUESTS_SPREADSHEET_ID,
+      guestsSheetName: GUESTS_SHEET_NAME,
+      responsesSpreadsheetId: RESPONSES_SPREADSHEET_ID,
+      responsesSheetName: RESPONSES_SHEET_NAME
+    }, params.callback);
+  }
+
   if (params.action === 'searchGuest') {
     const searchResult = searchGuestGroupsResult(params.q || '');
     const payload = {
       ok: true,
+      version: RSVP_APP_VERSION,
       matches: searchResult.matches,
       closedMatches: searchResult.closedMatches,
       allMatchesClosed: searchResult.allMatchesClosed
