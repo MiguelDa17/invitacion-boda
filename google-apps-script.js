@@ -70,34 +70,63 @@ function doGet(e) {
     return outputJSON(payload, params.callback);
   }
 
+  if (params.action === 'submitRsvp') {
+    try {
+      return outputJSON(saveRsvpResponse(parseSubmitData(params)), params.callback);
+    } catch (err) {
+      return outputJSON({ ok: false, error: err.message }, params.callback);
+    }
+  }
+
   return outputJSON({ ok: false, error: 'Accion no soportada' }, params.callback);
 }
 
 function doPost(e) {
+  return outputJSON(saveRsvpResponse(parsePostData(e)));
+}
+
+function saveRsvpResponse(data) {
+  let lock = null;
+
   try {
-    const data = parsePostData(e);
     if (!hasRsvpPayload(data)) {
-      return outputJSON({ ok: false, error: 'Solicitud RSVP vacía' });
+      return { ok: false, error: 'Solicitud RSVP vacía' };
+    }
+
+    if (typeof LockService !== 'undefined') {
+      lock = LockService.getScriptLock();
+      lock.waitLock(10000);
     }
 
     const sheet = prepareResponsesSheet();
-    appendRecordByHeaders(sheet, buildResponseRecord(data));
-    formatRsvpSheet(sheet, sheet.getLastColumn());
-
-    let summaryUpdated = false;
-    let summaryError = '';
-
-    try {
-      refreshRsvpSummary();
-      summaryUpdated = true;
-    } catch (summaryErr) {
-      summaryError = summaryErr.message;
-      console.error(summaryErr);
+    const accepted = buildAcceptedResponseRecord(data);
+    if (!accepted.ok) {
+      try {
+        accepted.summaryUpdated = true;
+        accepted.totals = refreshRsvpSummary();
+      } catch (summaryErr) {
+        accepted.summaryUpdated = false;
+        accepted.summaryError = summaryErr.message;
+      }
+      return accepted;
     }
 
-    return outputJSON({ ok: true, summaryUpdated: summaryUpdated, summaryError: summaryError });
+    appendRecordByHeaders(sheet, accepted.record);
+    formatRsvpSheet(sheet, sheet.getLastColumn());
+
+    const totals = refreshRsvpSummary();
+
+    return {
+      ok: true,
+      summaryUpdated: true,
+      acceptedGuests: accepted.acceptedGuests,
+      ignoredGuests: accepted.ignoredGuests,
+      totals: totals
+    };
   } catch (err) {
-    return outputJSON({ ok: false, error: err.message });
+    return { ok: false, error: err.message };
+  } finally {
+    if (lock) lock.releaseLock();
   }
 }
 
@@ -134,46 +163,52 @@ function searchGuestGroupsResult(query) {
   }
 
   const queryTokens = tokenize(normalizedQuery);
-  const closedGroupIds = getClosedResponseGroupIds();
+  const responseStatesByGroup = getResponseStatesByGroup();
+  const openMatches = [];
+  let closedMatches = 0;
 
-  const scoredMatches = getGuestGroups()
+  getGuestGroups()
     .filter(group => group && (!group.status || normalizeText(group.status) === 'activo'))
-    .map(group => {
-      const match = scoreGuestGroup(group, normalizedQuery, queryTokens);
+    .forEach(group => {
+      const searchGroup = buildSearchGuestGroup(group, responseStatesByGroup[group.grupoId]);
+      const pendingMatch = scoreNames(searchGroup.pendingNames, normalizedQuery, queryTokens);
+      const anyMatch = scoreNames(group.names, normalizedQuery, queryTokens);
 
-      return {
-        group: {
-          grupoId: group.grupoId,
-          names: group.names,
-          quantity: group.quantity,
-          score: match.score,
-          matchReason: match.matchReason
-        },
-        score: match.score
-      };
-    })
-    .filter(result => result.score >= 70)
-    .sort((a, b) => b.score - a.score);
-  const openMatches = scoredMatches.filter(result => !closedGroupIds[result.group.grupoId]);
-  const closedMatches = scoredMatches.length - openMatches.length;
+      if (pendingMatch.score >= 70) {
+        openMatches.push({
+          group: Object.assign({}, searchGroup, {
+            score: pendingMatch.score,
+            matchReason: pendingMatch.matchReason
+          }),
+          score: pendingMatch.score
+        });
+        return;
+      }
+
+      if (anyMatch.score >= 70) {
+        closedMatches++;
+      }
+    });
+
+  openMatches.sort((a, b) => b.score - a.score);
 
   return {
     matches: openMatches
       .slice(0, 5)
       .map(result => result.group),
     closedMatches: closedMatches,
-    allMatchesClosed: scoredMatches.length > 0 && openMatches.length === 0
+    allMatchesClosed: closedMatches > 0 && openMatches.length === 0
   };
 }
 
 function getClosedResponseGroupIds() {
-  const latestResponses = getLatestResponsesByGroup();
+  const latestResponses = getResponseStatesByGroup();
   const closed = {};
 
   Object.keys(latestResponses).forEach(groupId => {
-    const responseRecord = buildResponseRecord(latestResponses[groupId]);
-    const answered = Number(responseRecord.cantidad_asisten || 0) + Number(responseRecord.cantidad_no_asisten || 0);
-    const pending = Number(responseRecord.cantidad_pendientes || 0);
+    const state = latestResponses[groupId];
+    const answered = Object.keys(state.byName || {}).length;
+    const pending = Math.max(0, Number(state.quantity || 0) - answered);
 
     if (answered > 0 && pending === 0) {
       closed[groupId] = true;
@@ -303,12 +338,137 @@ function buildResponseRecord(data) {
   };
 }
 
+function buildAcceptedResponseRecord(data) {
+  const groupId = String(data.grupo_id || '').trim();
+  const officialGroup = findGuestGroupById(groupId);
+  const invitedNames = officialGroup
+    ? officialGroup.names
+    : splitNames(data.nombres_invitados || data.nombre);
+  const quantity = toPositiveNumber(
+    officialGroup ? officialGroup.quantity : data.cantidad_invitados || data.invitados,
+    invitedNames.length
+  );
+  const incomingConfirmations = getIncomingConfirmations(data, invitedNames);
+
+  if (!groupId) {
+    return { ok: false, error: 'No se recibió el ID del grupo de invitación.' };
+  }
+
+  if (!officialGroup) {
+    return { ok: false, error: 'No encontramos este grupo en la lista oficial de invitados. Comunícate con los novios.' };
+  }
+
+  if (!incomingConfirmations.length) {
+    return { ok: false, error: 'Selecciona Sí o No para al menos una persona pendiente.' };
+  }
+
+  const responseState = getResponseStatesByGroup()[groupId] || null;
+  const statusMap = getGroupStatusMap(
+    { names: invitedNames, quantity: quantity },
+    responseState
+  );
+  const acceptedConfirmations = [];
+  const ignoredGuests = [];
+
+  incomingConfirmations.forEach(item => {
+    const matchedName = matchKnownGuestName(item.nombre, invitedNames) || item.nombre;
+    const key = normalizeText(matchedName);
+
+    if (statusMap[key]) {
+      ignoredGuests.push(matchedName);
+      return;
+    }
+
+    acceptedConfirmations.push({
+      nombre: matchedName,
+      asistencia: item.asistencia
+    });
+    statusMap[key] = item.asistencia;
+  });
+
+  if (!acceptedConfirmations.length) {
+    return {
+      ok: false,
+      error: 'Esta persona ya tiene respuesta registrada. Si necesitas hacer algún cambio, comunícate con los novios.',
+      ignoredGuests: ignoredGuests
+    };
+  }
+
+  const yesNames = invitedNames.filter(name => statusMap[normalizeText(name)] === 'Sí');
+  const noNames = invitedNames.filter(name => statusMap[normalizeText(name)] === 'No');
+  const pendingNames = invitedNames.filter(name => !statusMap[normalizeText(name)]);
+  const pendingCount = Math.max(0, quantity - yesNames.length - noNames.length);
+  const acceptedYesNames = acceptedConfirmations
+    .filter(item => item.asistencia === 'Sí')
+    .map(item => item.nombre);
+  const acceptedNoNames = acceptedConfirmations
+    .filter(item => item.asistencia === 'No')
+    .map(item => item.nombre);
+  const currentConfirmations = invitedNames
+    .filter(name => statusMap[normalizeText(name)])
+    .map(name => ({
+      nombre: name,
+      asistencia: statusMap[normalizeText(name)]
+    }));
+
+  const acceptedData = Object.assign({}, data, {
+    nombres_invitados: invitedNames.join('\n'),
+    cantidad_invitados: quantity,
+    confirmaciones_invitados: JSON.stringify(currentConfirmations),
+    asistentes_confirmados: yesNames.join('\n'),
+    no_asisten: noNames.join('\n'),
+    total_confirmados: yesNames.length,
+    invitados: acceptedYesNames.length,
+    confirmacion: getAttendanceStatus(acceptedConfirmations.length, acceptedYesNames.length, acceptedNoNames.length, 0),
+    asistencia: getGroupStatus(quantity, yesNames.length, noNames.length, pendingCount),
+    pendientes_invitados: pendingNames.join('\n'),
+    cantidad_pendientes: pendingCount,
+    estado_grupo: getGroupStatus(quantity, yesNames.length, noNames.length, pendingCount)
+  });
+
+  return {
+    ok: true,
+    record: buildResponseRecord(acceptedData),
+    acceptedGuests: acceptedConfirmations.map(item => item.nombre),
+    ignoredGuests: ignoredGuests
+  };
+}
+
+function findGuestGroupById(groupId) {
+  if (!groupId) return null;
+  return getGuestGroups().find(group => group.grupoId === groupId) || null;
+}
+
+function getIncomingConfirmations(data, invitedNames) {
+  let confirmations = parseGuestConfirmations(data.confirmaciones_invitados);
+
+  if (!confirmations.length) {
+    confirmations = splitNames(data.asistentes_confirmados)
+      .map(name => ({ nombre: name, asistencia: 'Sí' }))
+      .concat(splitNames(data.no_asisten).map(name => ({ nombre: name, asistencia: 'No' })));
+  }
+
+  if (!confirmations.length) {
+    const attendance = normalizeAttendance(data.asistencia || data.confirmacion);
+    if (attendance) {
+      confirmations = invitedNames.map(name => ({ nombre: name, asistencia: attendance }));
+    }
+  }
+
+  return confirmations
+    .map(item => ({
+      nombre: matchKnownGuestName(item.nombre, invitedNames) || item.nombre,
+      asistencia: normalizeAttendance(item.asistencia)
+    }))
+    .filter(item => item.nombre && item.asistencia);
+}
+
 function refreshRsvpSummary() {
   const summarySheet = getOrCreateSheet(SUMMARY_SHEET_NAME);
-  const responsesByGroup = getLatestResponsesByGroup();
+  const responseStatesByGroup = getResponseStatesByGroup();
   const records = getGuestGroups()
     .filter(group => group && (!group.status || normalizeText(group.status) === 'activo'))
-    .map(group => buildSummaryRecord(group, responsesByGroup[group.grupoId]));
+    .map(group => buildSummaryRecord(group, responseStatesByGroup[group.grupoId]));
 
   const totals = calculateRsvpTotals(records);
 
@@ -434,66 +594,172 @@ function buildStatusRecord(summaryRecord, name, status) {
   };
 }
 
-function buildSummaryRecord(group, response) {
-  if (!response) {
-    return {
-      grupo_id: group.grupoId,
-      nombres_invitados: group.names.join('\n'),
-      cantidad_invitados: group.quantity,
-      estado_grupo: 'Pendiente',
-      asistentes_confirmados: '',
-      cantidad_asisten: 0,
-      no_asisten: '',
-      cantidad_no_asisten: 0,
-      pendientes_invitados: group.names.join('\n'),
-      cantidad_pendientes: group.quantity,
-      nombre_buscado: '',
-      fecha_respuesta: ''
-    };
-  }
-
-  const responseRecord = buildResponseRecord(Object.assign({}, response, {
-    nombres_invitados: response.nombres_invitados || group.names.join('\n'),
-    cantidad_invitados: response.cantidad_invitados || group.quantity
-  }));
+function buildSummaryRecord(group, responseState) {
+  const statusMap = getGroupStatusMap(group, responseState);
+  const yesNames = group.names.filter(name => statusMap[normalizeText(name)] === 'Sí');
+  const noNames = group.names.filter(name => statusMap[normalizeText(name)] === 'No');
+  const pendingNames = group.names.filter(name => !statusMap[normalizeText(name)]);
+  const quantity = group.quantity || group.names.length;
+  const pendingCount = Math.max(0, quantity - yesNames.length - noNames.length);
+  const latestDate = responseState ? responseState.latestDate : '';
 
   return {
     grupo_id: group.grupoId,
     nombres_invitados: group.names.join('\n'),
-    cantidad_invitados: group.quantity,
-    estado_grupo: responseRecord.estado_grupo,
-    asistentes_confirmados: responseRecord.asistentes_confirmados,
-    cantidad_asisten: responseRecord.cantidad_asisten,
-    no_asisten: responseRecord.no_asisten,
-    cantidad_no_asisten: responseRecord.cantidad_no_asisten,
-    pendientes_invitados: responseRecord.pendientes_invitados,
-    cantidad_pendientes: responseRecord.cantidad_pendientes,
-    nombre_buscado: responseRecord.nombre_buscado,
-    fecha_respuesta: responseRecord.fecha_respuesta
+    cantidad_invitados: quantity,
+    estado_grupo: getGroupStatus(quantity, yesNames.length, noNames.length, pendingCount),
+    asistentes_confirmados: yesNames.join('\n'),
+    cantidad_asisten: yesNames.length,
+    no_asisten: noNames.join('\n'),
+    cantidad_no_asisten: noNames.length,
+    pendientes_invitados: pendingNames.join('\n'),
+    cantidad_pendientes: pendingCount,
+    nombre_buscado: responseState ? responseState.nombreBuscado : '',
+    fecha_respuesta: latestDate
   };
 }
 
+function buildSearchGuestGroup(group, responseState) {
+  const statusMap = getGroupStatusMap(group, responseState);
+  const guestStatuses = group.names.map(name => ({
+    nombre: name,
+    asistencia: statusMap[normalizeText(name)] || '',
+    confirmado: Boolean(statusMap[normalizeText(name)])
+  }));
+  const pendingNames = guestStatuses
+    .filter(item => !item.confirmado)
+    .map(item => item.nombre);
+
+  return {
+    grupoId: group.grupoId,
+    names: group.names,
+    quantity: group.quantity,
+    guestStatuses: guestStatuses,
+    pendingNames: pendingNames,
+    pendingCount: pendingNames.length,
+    answeredCount: guestStatuses.length - pendingNames.length,
+    isClosed: pendingNames.length === 0
+  };
+}
+
+function getGroupStatusMap(group, responseState) {
+  const statusMap = {};
+  if (!responseState || !responseState.byName) return statusMap;
+
+  group.names.forEach(name => {
+    const key = normalizeText(name);
+    if (responseState.byName[key]) {
+      statusMap[key] = responseState.byName[key].asistencia;
+    }
+  });
+
+  return statusMap;
+}
+
+function scoreNames(names, normalizedQuery, queryTokens) {
+  if (!names || !names.length) return noMatch();
+
+  return names
+    .map(name => scoreSingleName(normalizeText(name), normalizedQuery, queryTokens))
+    .sort((a, b) => b.score - a.score)[0] || noMatch();
+}
+
 function getLatestResponsesByGroup() {
+  return getResponseStatesByGroup();
+}
+
+function getResponseStatesByGroup() {
   const sheet = getResponsesSpreadsheet().getSheetByName(RESPONSES_SHEET_NAME);
   if (!sheet || sheet.getLastRow() < 2) return {};
 
   const values = sheet.getDataRange().getValues();
   const headers = values[0].map(String);
-  const latest = {};
+  const states = {};
 
   values.slice(1).forEach(row => {
     const record = rowToRecord(headers, row);
     const groupId = String(record.grupo_id || '').trim();
     if (!groupId) return;
 
-    const timestamp = toTimestamp(record.fecha_respuesta);
-    if (!latest[groupId] || timestamp >= latest[groupId].__timestamp) {
-      record.__timestamp = timestamp;
-      latest[groupId] = record;
+    updateResponseState(states, record);
+  });
+
+  return states;
+}
+
+function updateResponseState(states, record) {
+  const groupId = String(record.grupo_id || '').trim();
+  if (!groupId) return;
+
+  const timestamp = toTimestamp(record.fecha_respuesta);
+  const confirmations = getRecordConfirmations(record);
+  if (!confirmations.length) return;
+
+  if (!states[groupId]) {
+    states[groupId] = {
+      grupoId: groupId,
+      invitedNames: splitNames(record.nombres_invitados || record.nombre),
+      quantity: toPositiveNumber(record.cantidad_invitados || record.invitados, 0),
+      byName: {},
+      latestTimestamp: 0,
+      latestDate: '',
+      nombreBuscado: ''
+    };
+  }
+
+  const state = states[groupId];
+  if (!state.invitedNames.length) {
+    state.invitedNames = splitNames(record.nombres_invitados || record.nombre);
+  }
+  if (!state.quantity) {
+    state.quantity = toPositiveNumber(record.cantidad_invitados || record.invitados, state.invitedNames.length);
+  }
+
+  confirmations.forEach(item => {
+    if (!item.asistencia) return;
+
+    const matchedName = matchKnownGuestName(item.nombre, state.invitedNames);
+    const key = normalizeText(matchedName || item.nombre);
+    const current = state.byName[key];
+
+    if (!current || timestamp >= current.timestamp) {
+      state.byName[key] = {
+        nombre: matchedName || item.nombre,
+        asistencia: item.asistencia,
+        timestamp: timestamp,
+        fechaRespuesta: record.fecha_respuesta || ''
+      };
     }
   });
 
-  return latest;
+  if (timestamp >= state.latestTimestamp) {
+    state.latestTimestamp = timestamp;
+    state.latestDate = record.fecha_respuesta || '';
+    state.nombreBuscado = record.nombre_buscado || state.nombreBuscado || '';
+  }
+}
+
+function getRecordConfirmations(record) {
+  const confirmations = parseGuestConfirmations(record.confirmaciones_invitados);
+  if (confirmations.length) return confirmations;
+
+  const yesNames = splitNames(record.asistentes_confirmados)
+    .map(name => ({ nombre: name, asistencia: 'Sí' }));
+  const noNames = splitNames(record.no_asisten)
+    .map(name => ({ nombre: name, asistencia: 'No' }));
+  const explicitNames = yesNames.concat(noNames);
+  if (explicitNames.length) return explicitNames;
+
+  const attendance = normalizeAttendance(record.asistencia || record.confirmacion);
+  if (!attendance) return [];
+
+  return splitNames(record.nombres_invitados || record.nombre)
+    .map(name => ({ nombre: name, asistencia: attendance }));
+}
+
+function matchKnownGuestName(name, invitedNames) {
+  const normalizedName = normalizeText(name);
+  return invitedNames.find(invitedName => normalizeText(invitedName) === normalizedName) || '';
 }
 
 function prepareResponsesSheet() {
@@ -1031,6 +1297,18 @@ function parsePostData(e) {
   }
 
   return (e && e.parameter) || {};
+}
+
+function parseSubmitData(params) {
+  if (params && params.payload) {
+    try {
+      return JSON.parse(String(params.payload));
+    } catch (err) {
+      throw new Error('No se pudo leer la confirmación enviada.');
+    }
+  }
+
+  return params || {};
 }
 
 function getGuestsSpreadsheet() {

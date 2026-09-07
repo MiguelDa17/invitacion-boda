@@ -702,6 +702,9 @@
       padding: 11px 0;
       border-bottom: 1px solid rgba(var(--accent-rgb),.1);
     }
+    .attendance-row.locked {
+      opacity: .7;
+    }
     .attendance-name {
       color: var(--cream);
       font-family: var(--font-serif);
@@ -712,6 +715,18 @@
     .attendance-options {
       display: inline-flex;
       gap: 6px;
+    }
+    .attendance-status {
+      border: 1px solid rgba(var(--accent-rgb),.18);
+      border-radius: 999px;
+      color: var(--gray);
+      font-family: var(--font-sans);
+      font-size: .5rem;
+      letter-spacing: .11em;
+      line-height: 1;
+      padding: 9px 10px;
+      text-transform: uppercase;
+      white-space: nowrap;
     }
     .attendance-option {
       min-width: 42px;
@@ -1189,6 +1204,7 @@
     let lastSearchedName = '';
     let guestSearchReady = false;
     let selectedGuestAttendance = {};
+    let lockedGuestAttendance = {};
 
     /* ================================================================
        ABRIR INVITACIÓN
@@ -1304,7 +1320,7 @@
           const searchResult = await searchGuestGroup(query);
           const matches = filterGuestMatches(searchResult.matches, query);
           if (!matches.length && searchResult.allMatchesClosed) {
-            setGuestStatus('Esta invitación ya fue confirmada. Si necesitas hacer algún cambio, comunícate con los novios.');
+            setGuestStatus('Esta persona ya tiene respuesta registrada. Si necesitas hacer algún cambio, comunícate con los novios.');
             return;
           }
           renderGuestMatches(matches, query);
@@ -1537,6 +1553,7 @@
     function selectGuestGroup(group, searchedName) {
       selectedGuestGroup = group;
       selectedGuestAttendance = {};
+      lockedGuestAttendance = getLockedAttendanceMap(group);
       lastSearchedName = searchedName || document.getElementById('buscar-invitado').value.trim();
       fillHiddenRSVPFields(group, lastSearchedName);
 
@@ -1551,21 +1568,31 @@
       if (matches) matches.classList.remove('visible');
       setGuestStatus('');
 
+      const names = Array.isArray(group.names) ? group.names : [];
+      const pendingCount = names.filter((_, index) => !lockedGuestAttendance[index]).length;
+      const answeredCount = names.length - pendingCount;
+
       selected.innerHTML = `
         <h3>Encontramos tu invitación</h3>
-        <p><strong>${escapeHTML(group.quantity)} cupos asignados.</strong> Confirma quiénes nos acompañan.</p>
+        <p><strong>${escapeHTML(group.quantity)} cupos asignados.</strong> ${pendingCount ? 'Confirma solo las personas pendientes. Las demás quedan igual.' : 'Esta invitación ya fue respondida.'}</p>
         <div class="attendance-list">
-          ${group.names.map((name, index) => `
-            <div class="attendance-row" data-attendance-row="${index}">
+          ${names.map((name, index) => {
+            const lockedStatus = lockedGuestAttendance[index] || '';
+            return `
+            <div class="attendance-row ${lockedStatus ? 'locked' : ''}" data-attendance-row="${index}">
               <span class="attendance-name">${escapeHTML(name)}</span>
-              <span class="attendance-options" aria-label="Confirmación de ${escapeHTML(name)}">
-                <button type="button" class="attendance-option" data-attendance-index="${index}" data-attendance-value="Sí" aria-pressed="false">Sí</button>
-                <button type="button" class="attendance-option" data-attendance-index="${index}" data-attendance-value="No" aria-pressed="false">No</button>
-              </span>
+              ${lockedStatus ? `
+                <span class="attendance-status">${lockedStatus === 'Sí' ? 'Ya confirmó' : 'No asiste'}</span>
+              ` : `
+                <span class="attendance-options" aria-label="Confirmación de ${escapeHTML(name)}">
+                  <button type="button" class="attendance-option" data-attendance-index="${index}" data-attendance-value="Sí" aria-pressed="false">Sí</button>
+                  <button type="button" class="attendance-option" data-attendance-index="${index}" data-attendance-value="No" aria-pressed="false">No</button>
+                </span>
+              `}
             </div>
-          `).join('')}
+          `}).join('')}
         </div>
-        <p class="attendance-summary" id="attendance-summary">Selecciona la asistencia de cada invitado para continuar.</p>
+        <p class="attendance-summary" id="attendance-summary">${answeredCount ? `${answeredCount} ${answeredCount === 1 ? 'persona ya respondió' : 'personas ya respondieron'}. ` : ''}${pendingCount ? `Faltan ${pendingCount} ${pendingCount === 1 ? 'persona pendiente' : 'personas pendientes'}.` : 'La invitación ya está completa.'}</p>
       `;
       selected.classList.add('visible');
       selected.querySelectorAll('.attendance-option').forEach(button => {
@@ -1583,7 +1610,24 @@
       document.getElementById('nombre_buscado').value = searchedName || '';
     }
 
+    function getLockedAttendanceMap(group) {
+      const map = {};
+      const names = Array.isArray(group && group.names) ? group.names : [];
+      const statuses = Array.isArray(group && group.guestStatuses) ? group.guestStatuses : [];
+
+      names.forEach((name, index) => {
+        const status = statuses.find(item => normalizeText(item && item.nombre) === normalizeText(name));
+        if (status && status.asistencia) {
+          map[index] = status.asistencia;
+        }
+      });
+
+      return map;
+    }
+
     function setGuestAttendance(index, value) {
+      if (lockedGuestAttendance[index]) return;
+
       selectedGuestAttendance[index] = value;
 
       document
@@ -1604,30 +1648,35 @@
       const confirmations = names.map((name, index) => ({
         nombre: name,
         asistencia: selectedGuestAttendance[index] || ''
-      }));
-      const complete = confirmations.length > 0 && confirmations.every(item => item.asistencia);
-      const yesNames = confirmations.filter(item => item.asistencia === 'Sí').map(item => item.nombre);
-      const noNames = confirmations.filter(item => item.asistencia === 'No').map(item => item.nombre);
+      })).filter((_, index) => !lockedGuestAttendance[index]);
+      const selectedConfirmations = confirmations.filter(item => item.asistencia);
+      const yesNames = selectedConfirmations.filter(item => item.asistencia === 'Sí').map(item => item.nombre);
+      const noNames = selectedConfirmations.filter(item => item.asistencia === 'No').map(item => item.nombre);
+      const pendingCount = confirmations.length - selectedConfirmations.length;
 
-      document.getElementById('confirmaciones_invitados').value = JSON.stringify(confirmations);
+      document.getElementById('confirmaciones_invitados').value = JSON.stringify(selectedConfirmations);
       document.getElementById('asistentes_confirmados').value = yesNames.join('\n');
       document.getElementById('no_asisten').value = noNames.join('\n');
-      document.getElementById('total_confirmados').value = complete ? String(yesNames.length) : '';
-      document.getElementById('invitados').value = complete ? String(yesNames.length) : '';
-      document.getElementById('asistencia').value = complete
-        ? (yesNames.length === names.length ? 'Sí' : yesNames.length === 0 ? 'No' : 'Parcial')
+      document.getElementById('total_confirmados').value = String(yesNames.length);
+      document.getElementById('invitados').value = String(yesNames.length);
+      document.getElementById('asistencia').value = selectedConfirmations.length
+        ? (yesNames.length === selectedConfirmations.length ? 'Sí' : yesNames.length === 0 ? 'No' : 'Parcial')
         : '';
 
       const summary = document.getElementById('attendance-summary');
       if (!summary) return;
 
-      if (!complete) {
-        const pending = confirmations.filter(item => !item.asistencia).length;
-        summary.textContent = `Falta confirmar ${pending} ${pending === 1 ? 'persona' : 'personas'}.`;
+      if (!confirmations.length) {
+        summary.textContent = 'Esta invitación ya está completa. Si necesitas hacer un cambio, comunícate con los novios.';
         return;
       }
 
-      summary.textContent = `${yesNames.length} de ${names.length} ${yesNames.length === 1 ? 'persona asistirá' : 'personas asistirán'}.`;
+      if (!selectedConfirmations.length) {
+        summary.textContent = `Faltan ${pendingCount} ${pendingCount === 1 ? 'persona pendiente' : 'personas pendientes'}.`;
+        return;
+      }
+
+      summary.textContent = `${yesNames.length} ${yesNames.length === 1 ? 'persona asistirá' : 'personas asistirán'} ahora. ${pendingCount ? `${pendingCount} ${pendingCount === 1 ? 'queda pendiente' : 'quedan pendientes'}.` : 'No quedan pendientes.'}`;
     }
 
     function isAttendanceComplete() {
@@ -1635,12 +1684,13 @@
         ? selectedGuestGroup.names
         : [];
 
-      return names.length > 0 && names.every((_, index) => selectedGuestAttendance[index]);
+      return names.some((_, index) => !lockedGuestAttendance[index] && selectedGuestAttendance[index]);
     }
 
     function clearGuestSelection(showMessage = true) {
       selectedGuestGroup = null;
       selectedGuestAttendance = {};
+      lockedGuestAttendance = {};
       ['grupo_id','nombres_invitados','cantidad_invitados','nombre_buscado','nombre','invitados','asistencia','confirmaciones_invitados','asistentes_confirmados','no_asisten','total_confirmados'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -1675,22 +1725,7 @@
     }
 
     /* ================================================================
-       FORMULARIO RSVP — ENVÍO A GOOGLE SHEETS
-
-       DASHBOARD EN GOOGLE SHEETS (una vez que lleguen datos):
-       ──────────────────────────────────────────────────────
-       · Filtrar asistentes:
-           Datos → Crear filtro → columna D = "Sí"
-
-       · Total de personas confirmadas (pon esto en cualquier celda libre):
-           =SUMIF(D:D,"Sí",C:C)
-
-       · Exportar a Excel:
-           Archivo → Descargar → Microsoft Excel (.xlsx)
-
-       · Dashboard visual:
-           Insertar → Gráfico → Torta (columna D para asistencia)
-           Comparte la hoja en "Solo lectura" para monitoreo en tiempo real.
+       FORMULARIO RSVP — confirmación por invitado en Google Sheets
     ================================================================ */
     async function enviarRSVP(event) {
       event.preventDefault();
@@ -1713,7 +1748,7 @@
         return;
       }
       if (!isAttendanceComplete()) {
-        setGuestStatus('Confirma con Sí o No para cada persona de tu invitación.', true);
+        setGuestStatus('Selecciona Sí o No para al menos una persona pendiente.', true);
         return;
       }
       if (!nombre || !asistencia) {
@@ -1728,38 +1763,69 @@
       txt.textContent = 'Enviando...';
 
       try {
-        /*
-         * mode: 'no-cors' es obligatorio con Google Apps Script.
-         * El dato SÍ se escribe en Sheets aunque no podamos leer la respuesta.
-         */
-        await fetch(SCRIPT_URL, {
-          method:  'POST',
-          mode:    'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nombre,
-            invitados,
-            asistencia,
-            grupo_id: grupoId,
-            nombres_invitados: nombresInvitados,
-            cantidad_invitados: cantidadInvitados,
-            nombre_buscado: nombreBuscado,
-            confirmacion: asistencia,
-            confirmaciones_invitados: confirmacionesInvitados,
-            asistentes_confirmados: asistentesConfirmados,
-            no_asisten: noAsisten,
-            total_confirmados: totalConfirmados
-          })
+        const result = await submitRsvpJSONP({
+          nombre,
+          invitados,
+          asistencia,
+          grupo_id: grupoId,
+          nombres_invitados: nombresInvitados,
+          cantidad_invitados: cantidadInvitados,
+          nombre_buscado: nombreBuscado,
+          confirmacion: asistencia,
+          confirmaciones_invitados: confirmacionesInvitados,
+          asistentes_confirmados: asistentesConfirmados,
+          no_asisten: noAsisten,
+          total_confirmados: totalConfirmados
         });
+
+        if (!result.ok) {
+          throw new Error(result.error || 'No se pudo registrar la confirmación.');
+        }
 
         mostrarExito();
 
       } catch (err) {
         console.error('Error al enviar RSVP:', err);
-        txt.textContent = 'Error de red. Intenta de nuevo.';
+        txt.textContent = 'No se pudo enviar';
         btn.disabled = false;
+        setGuestStatus(err.message || 'No pudimos registrar tu confirmación. Intenta de nuevo.', true);
         setTimeout(() => { txt.textContent = '✦  Confirmar Asistencia  ✦'; }, 3500);
       }
+    }
+
+    function submitRsvpJSONP(payload) {
+      return new Promise((resolve, reject) => {
+        const callbackName = `rsvpSubmitCallback_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const script = document.createElement('script');
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error('Tiempo de espera agotado. Intenta de nuevo.'));
+        }, 12000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        window[callbackName] = (data) => {
+          cleanup();
+          resolve(data || { ok: false, error: 'Respuesta vacía del servidor.' });
+        };
+
+        const params = new URLSearchParams({
+          action: 'submitRsvp',
+          payload: JSON.stringify(payload),
+          callback: callbackName
+        });
+
+        script.src = `${SCRIPT_URL}?${params.toString()}`;
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('No se pudo conectar con la confirmación. Intenta de nuevo.'));
+        };
+        document.body.appendChild(script);
+      });
     }
 
     function mostrarExito() {
