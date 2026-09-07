@@ -9,6 +9,7 @@ const DECLINED_SHEET_NAME = 'No asisten';
 const PENDING_SHEET_NAME = 'Pendientes';
 const TOTALS_SHEET_NAME = 'Totales RSVP';
 const RSVP_APP_VERSION = '2026-09-06-rsvp-person-status-v3';
+let guestGroupsCache = null;
 
 const RESPONSE_HEADERS = [
   'fecha_respuesta',
@@ -57,6 +58,7 @@ const STATUS_HEADERS = [
 ];
 
 function doGet(e) {
+  resetExecutionCache();
   const params = (e && e.parameter) || {};
 
   if (params.action === 'health') {
@@ -95,6 +97,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  resetExecutionCache();
   return outputJSON(saveRsvpResponse(parsePostData(e)));
 }
 
@@ -111,23 +114,13 @@ function saveRsvpResponse(data) {
       lock.waitLock(10000);
     }
 
-    const sheet = prepareResponsesSheet();
+    const sheet = prepareResponsesSheet({ fast: true });
     const accepted = buildAcceptedResponseRecord(data);
-    if (!accepted.ok) {
-      try {
-        accepted.summaryUpdated = true;
-        accepted.totals = refreshRsvpSummary();
-      } catch (summaryErr) {
-        accepted.summaryUpdated = false;
-        accepted.summaryError = summaryErr.message;
-      }
-      return accepted;
-    }
+    if (!accepted.ok) return accepted;
 
     appendRecordByHeaders(sheet, accepted.record);
-    formatRsvpSheet(sheet, sheet.getLastColumn());
 
-    const totals = refreshRsvpSummary();
+    const totals = refreshRsvpSummary({ fast: true });
 
     return {
       ok: true,
@@ -166,6 +159,7 @@ function validateRsvpWorkbook() {
 }
 
 function repairLegacyRsvpResponses() {
+  resetExecutionCache();
   const sheet = getOrCreateSheet(RESPONSES_SHEET_NAME);
   normalizeLegacyResponseSheet(sheet);
   ensureHeaders(sheet, RESPONSE_HEADERS);
@@ -195,6 +189,10 @@ function actualizarRsvpHistorico() {
 
 function searchGuestGroups(query) {
   return searchGuestGroupsResult(query).matches;
+}
+
+function resetExecutionCache() {
+  guestGroupsCache = null;
 }
 
 function searchGuestGroupsResult(query) {
@@ -260,6 +258,8 @@ function getClosedResponseGroupIds() {
 }
 
 function getGuestGroups() {
+  if (guestGroupsCache) return guestGroupsCache;
+
   const sheet = getGuestsSpreadsheet().getSheetByName(GUESTS_SHEET_NAME);
   if (!sheet) throw new Error('No existe la pestaña ' + GUESTS_SHEET_NAME);
 
@@ -278,9 +278,11 @@ function getGuestGroups() {
     throw new Error('Falta la columna requerida "Nombres completos invitados" en ' + GUESTS_SHEET_NAME);
   }
 
-  return values.slice(1)
+  guestGroupsCache = values.slice(1)
     .map((row, rowIndex) => buildGuestGroup(row, indexes, rowIndex + 2))
     .filter(Boolean);
+
+  return guestGroupsCache;
 }
 
 function buildGuestGroup(row, indexes, sheetRowNumber) {
@@ -506,7 +508,8 @@ function getIncomingConfirmations(data, invitedNames) {
     .filter(item => item.nombre && item.asistencia);
 }
 
-function refreshRsvpSummary() {
+function refreshRsvpSummary(options) {
+  const settings = options || {};
   const summarySheet = getOrCreateSheet(SUMMARY_SHEET_NAME);
   const responseStatesByGroup = getResponseStatesByGroup();
   const records = getGuestGroups()
@@ -515,9 +518,9 @@ function refreshRsvpSummary() {
 
   const totals = calculateRsvpTotals(records);
 
-  rewriteSheetWithRecords(summarySheet, SUMMARY_HEADERS, records, { tabColor: '#6E1F2C' });
-  refreshStatusSheets(records);
-  refreshTotalsSheet(totals);
+  rewriteSheetWithRecords(summarySheet, SUMMARY_HEADERS, records, { tabColor: '#6E1F2C', fast: settings.fast });
+  refreshStatusSheets(records, settings);
+  refreshTotalsSheet(totals, settings);
 
   return totals;
 }
@@ -552,9 +555,16 @@ function calculateRsvpTotals(records) {
   };
 }
 
-function refreshTotalsSheet(totals) {
+function refreshTotalsSheet(totals, options) {
+  const settings = options || {};
   const sheet = getOrCreateSheet(TOTALS_SHEET_NAME);
-  resetSheet(sheet);
+  const shouldFormat = !settings.fast || !sheet.getLastRow() || !sheet.getLastColumn();
+
+  if (!shouldFormat) {
+    resetSheetContents(sheet);
+  } else {
+    resetSheet(sheet);
+  }
 
   const rows = [
     ['Métrica', 'Total', 'Detalle'],
@@ -569,35 +579,41 @@ function refreshTotalsSheet(totals) {
     ['Invitaciones sin respuesta', totals.invitacionesSinRespuesta, 'Nadie del grupo ha respondido']
   ];
 
-  sheet.getRange(1, 1, 1, 3).merge();
+  if (shouldFormat) {
+    sheet.getRange(1, 1, 1, 3).merge();
+  }
   sheet.getRange(1, 1).setValue('Totales RSVP');
   sheet.getRange(2, 1).setValue('Última actualización');
   sheet.getRange(2, 2).setValue(new Date());
   sheet.getRange(4, 1, rows.length, 3).setValues(rows);
 
-  formatTotalsSheet(sheet);
+  if (shouldFormat) {
+    formatTotalsSheet(sheet);
+  }
 }
 
-function refreshStatusSheets(summaryRecords) {
+function refreshStatusSheets(summaryRecords, options) {
+  const settings = options || {};
+
   const grouped = buildStatusSheetRecords(summaryRecords);
 
   rewriteSheetWithRecords(
     getOrCreateSheet(CONFIRMED_SHEET_NAME),
     STATUS_HEADERS,
     grouped.confirmados,
-    { tabColor: '#2F6B4F', headerColor: '#2F6B4F' }
+    { tabColor: '#2F6B4F', headerColor: '#2F6B4F', fast: settings.fast }
   );
   rewriteSheetWithRecords(
     getOrCreateSheet(DECLINED_SHEET_NAME),
     STATUS_HEADERS,
     grouped.noAsisten,
-    { tabColor: '#5E2E37', headerColor: '#5E2E37' }
+    { tabColor: '#5E2E37', headerColor: '#5E2E37', fast: settings.fast }
   );
   rewriteSheetWithRecords(
     getOrCreateSheet(PENDING_SHEET_NAME),
     STATUS_HEADERS,
     grouped.pendientes,
-    { tabColor: '#A06A2A', headerColor: '#A06A2A' }
+    { tabColor: '#A06A2A', headerColor: '#A06A2A', fast: settings.fast }
   );
 }
 
@@ -783,10 +799,11 @@ function updateResponseState(states, record) {
 }
 
 function getRecordConfirmations(record) {
-  const officialGroup = getOfficialGroupForRecord(record);
+  const existingNames = splitNames(record.nombres_invitados || record.nombre);
+  const officialGroup = existingNames.length ? null : getOfficialGroupForRecord(record);
   const invitedNames = officialGroup
     ? officialGroup.names
-    : splitNames(record.nombres_invitados || record.nombre);
+    : existingNames;
   const quantity = toPositiveNumber(
     officialGroup ? officialGroup.quantity : record.cantidad_invitados || record.invitados,
     invitedNames.length
@@ -983,11 +1000,15 @@ function buildConfirmationItems(names, asistencia) {
   }));
 }
 
-function prepareResponsesSheet() {
+function prepareResponsesSheet(options) {
+  const settings = options || {};
   const sheet = getOrCreateSheet(RESPONSES_SHEET_NAME);
   normalizeLegacyResponseSheet(sheet);
   ensureHeaders(sheet, RESPONSE_HEADERS);
-  formatRsvpSheet(sheet, sheet.getLastColumn(), { tabColor: '#6E1F2C' });
+
+  if (!settings.fast) {
+    formatRsvpSheet(sheet, sheet.getLastColumn(), { tabColor: '#6E1F2C' });
+  }
 
   return sheet;
 }
@@ -1299,6 +1320,13 @@ function appendRecordByHeaders(sheet, record) {
 }
 
 function rewriteSheetWithRecords(sheet, headers, records, options) {
+  const settings = options || {};
+
+  if (settings.fast && sheet.getLastRow() && sheet.getLastColumn()) {
+    rewriteSheetContents(sheet, headers, records);
+    return;
+  }
+
   resetSheet(sheet);
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -1306,9 +1334,18 @@ function rewriteSheetWithRecords(sheet, headers, records, options) {
     const rows = records.map(record => headers.map(header => getRecordValue(record, header)));
     sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
   }
-
-  formatRsvpSheet(sheet, headers.length, options);
+  formatRsvpSheet(sheet, headers.length, settings);
   addSheetFilter(sheet);
+}
+
+function rewriteSheetContents(sheet, headers, records) {
+  resetSheetContents(sheet);
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  if (records.length) {
+    const rows = records.map(record => headers.map(header => getRecordValue(record, header)));
+    sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  }
 }
 
 function resetSheet(sheet) {
@@ -1316,6 +1353,15 @@ function resetSheet(sheet) {
     sheet.getDataRange().breakApart();
   } catch (err) {
     console.error(err);
+  }
+
+  sheet.clear();
+}
+
+function resetSheetContents(sheet) {
+  if (typeof sheet.clearContents === 'function') {
+    sheet.clearContents();
+    return;
   }
 
   sheet.clear();

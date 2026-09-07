@@ -1135,7 +1135,7 @@
         <input type="hidden" id="total_confirmados" name="total_confirmados">
 
         <button type="submit" class="btn-enviar" id="btn-enviar">
-          <span id="txt-btn">✦ &nbsp;Confirmar Asistencia&nbsp; ✦</span>
+          <span id="txt-btn">✦ &nbsp;Enviar respuesta&nbsp; ✦</span>
         </button>
       </form>
 
@@ -1201,6 +1201,7 @@
      */
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgEUee6H49JC-CJ26HPAMcYpqNgYYC8Daycc0-nRJRf4mPhojToeaG_DMldGHQOv4U/exec';
     const RSVP_SEARCH_VERSION = '2026-09-06-rsvp-person-status-v3';
+    const RSVP_BUTTON_LABEL = '✦  Enviar respuesta  ✦';
     let selectedGuestGroup = null;
     let lastSearchedName = '';
     let guestSearchReady = false;
@@ -1362,7 +1363,7 @@
         const timeout = setTimeout(() => {
           cleanup();
           reject(new Error('Tiempo de espera agotado'));
-        }, 9000);
+        }, 25000);
 
         function cleanup() {
           clearTimeout(timeout);
@@ -1697,7 +1698,25 @@
         return;
       }
 
-      summary.textContent = `${yesNames.length} ${yesNames.length === 1 ? 'persona asistirá' : 'personas asistirán'} ahora. ${pendingCount ? `${pendingCount} ${pendingCount === 1 ? 'queda pendiente' : 'quedan pendientes'}.` : 'No quedan pendientes.'}`;
+      summary.textContent = formatAttendanceSummary(yesNames.length, noNames.length, pendingCount);
+    }
+
+    function formatAttendanceSummary(yesCount, noCount, pendingCount) {
+      const parts = [];
+
+      if (yesCount) {
+        parts.push(`${yesCount} ${yesCount === 1 ? 'persona asistirá' : 'personas asistirán'}`);
+      }
+      if (noCount) {
+        parts.push(`${noCount} ${noCount === 1 ? 'persona no asistirá' : 'personas no asistirán'}`);
+      }
+
+      const responseText = parts.length ? `${parts.join(' y ')} ahora.` : '';
+      const pendingText = pendingCount
+        ? `${pendingCount} ${pendingCount === 1 ? 'queda pendiente' : 'quedan pendientes'}.`
+        : 'No quedan pendientes.';
+
+      return `${responseText} ${pendingText}`.trim();
     }
 
     function isAttendanceComplete() {
@@ -1781,7 +1800,7 @@
       const txt = document.getElementById('txt-btn');
 
       btn.disabled    = true;
-      txt.textContent = 'Enviando...';
+      txt.textContent = 'Registrando respuesta...';
 
       try {
         const result = await submitRsvpJSONP({
@@ -1810,7 +1829,7 @@
         txt.textContent = 'No se pudo enviar';
         btn.disabled = false;
         setGuestStatus(err.message || 'No pudimos registrar tu confirmación. Intenta de nuevo.', true);
-        setTimeout(() => { txt.textContent = '✦  Confirmar Asistencia  ✦'; }, 3500);
+        setTimeout(() => { txt.textContent = RSVP_BUTTON_LABEL; }, 3500);
       }
     }
 
@@ -1821,7 +1840,7 @@
         const timeout = setTimeout(() => {
           cleanup();
           reject(new Error('Tiempo de espera agotado. Intenta de nuevo.'));
-        }, 12000);
+        }, 70000);
 
         function cleanup() {
           clearTimeout(timeout);
