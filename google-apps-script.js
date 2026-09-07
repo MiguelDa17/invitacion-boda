@@ -1254,7 +1254,7 @@ function getGroupStatus(quantity, yesCount, noCount, pendingCount) {
   if (pendingCount > 0) return 'Pendiente';
   if (quantity > 0 && yesCount >= quantity) return 'Todos asisten';
   if (quantity > 0 && noCount >= quantity) return 'No asiste el grupo';
-  if (yesCount > 0 && noCount > 0) return 'Parcial';
+  if (yesCount > 0 && noCount > 0) return 'Asistencia parcial';
   if (yesCount > 0) return 'Asisten';
   if (noCount > 0) return 'No asisten';
   return 'Pendiente';
@@ -1528,7 +1528,7 @@ function getStatusBackground(status) {
   if (normalized === 'pendiente') {
     return '#F6E7C9';
   }
-  if (normalized === 'parcial' || normalized === 'parcial con pendientes') {
+  if (normalized === 'parcial' || normalized === 'parcial con pendientes' || normalized === 'asistencia parcial') {
     return '#E9D7DC';
   }
 
@@ -1547,7 +1547,7 @@ function getStatusTextColor(status) {
   if (normalized === 'pendiente') {
     return '#7A4B16';
   }
-  if (normalized === 'parcial' || normalized === 'parcial con pendientes') {
+  if (normalized === 'parcial' || normalized === 'parcial con pendientes' || normalized === 'asistencia parcial') {
     return '#5E2E37';
   }
 
